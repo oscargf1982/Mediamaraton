@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Plan Media Maratón · 1h22</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#15191E; --paper:#F3F4F1; --card:#FFFFFF; --accent:#E8401C;
+    --mut:#7A7E74; --mut2:#9A9E92; --line:#D9DBD3; --green:#1E8A5A;
+    --mono:ui-monospace,'SF Mono','Cascadia Mono',Menlo,monospace;
+    --sans:'Archivo',-apple-system,'Segoe UI',Roboto,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);}
+  button{font-family:var(--sans);cursor:pointer;}
+  input{font-family:var(--mono);}
+  .shell{max-width:880px;margin:0 auto;padding:20px 16px 90px;min-height:100vh;}
+
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--mut);margin-bottom:6px;}
+
+  /* header */
+  header{border-bottom:3px solid var(--ink);padding-bottom:16px;margin-bottom:14px;}
+  .headerTop{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;}
+  .bigTitle{font-size:clamp(28px,5vw,44px);font-weight:900;font-stretch:75%;letter-spacing:-.02em;line-height:1;}
+  .accent{color:var(--accent);font-family:var(--mono);font-weight:800;}
+  .unit{font-size:.45em;color:var(--mut);font-weight:600;}
+  .bibBox{border:2px solid var(--ink);background:var(--card);padding:10px 16px;text-align:center;box-shadow:4px 4px 0 var(--ink);}
+  .bibLabel{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--mut);}
+  .bibPace{font-family:var(--mono);font-size:34px;font-weight:800;line-height:1.05;}
+  .bibSub{font-family:var(--mono);font-size:11px;color:var(--mut);}
+  .progressRow{margin-top:14px;}
+  .progressTrack{position:relative;height:10px;background:#E2E4DD;overflow:hidden;}
+  .progressFill{position:absolute;left:0;top:0;bottom:0;background:var(--accent);transition:width .5s ease;}
+  .progressGoal{position:absolute;right:0;top:0;bottom:0;width:3px;background:var(--ink);}
+  .progressTxt{font-family:var(--mono);font-size:11px;color:var(--mut);margin-top:6px;}
+
+  /* tabs */
+  nav.tabs{display:flex;gap:8px;margin:16px 0 20px;flex-wrap:wrap;}
+  .tab{border:2px solid var(--ink);background:transparent;padding:8px 14px;font-weight:700;font-size:13px;transition:background .15s;}
+  .tab.on{background:var(--ink);color:var(--paper);}
+  .tab:hover:not(.on){background:#E7E9E3;}
+
+  /* week nav */
+  .weekNav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px;}
+  .navBtn{border:2px solid var(--ink);background:transparent;width:44px;height:44px;font-size:18px;font-weight:800;}
+  .navBtn:hover:not(:disabled){background:#E7E9E3;}
+  .navBtn:disabled{opacity:.3;cursor:default;}
+  .weekNum{font-size:26px;font-weight:900;font-stretch:75%;letter-spacing:-.01em;}
+  .weekOf{color:var(--mut2);font-weight:700;font-size:18px;}
+  .weekPhase{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--accent);text-transform:uppercase;}
+  .todayBtn{border:none;background:transparent;text-decoration:underline;font-size:13px;color:var(--mut);margin:0 auto 8px;display:block;}
+
+  /* session cards */
+  .sessionList{display:flex;flex-direction:column;gap:12px;margin-top:12px;}
+  .card{display:flex;gap:14px;background:var(--card);border:2px solid var(--ink);padding:16px;align-items:stretch;flex-wrap:wrap;}
+  .card.race{background:var(--ink);color:var(--paper);box-shadow:6px 6px 0 var(--accent);}
+  .card.done{border-color:var(--green);}
+  .cardLane{font-family:var(--mono);font-weight:800;font-size:22px;width:34px;display:flex;align-items:center;justify-content:center;border-right:2px solid currentColor;padding-right:12px;opacity:.8;}
+  .cardBody{flex:1 1 220px;min-width:200px;}
+  .cardType{font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--accent);font-weight:700;}
+  .cardTitle{font-size:19px;font-weight:800;font-stretch:80%;margin:3px 0 4px;}
+  .cardDetail{font-size:13.5px;line-height:1.45;opacity:.82;}
+  .logLine{font-family:var(--mono);font-size:12px;color:var(--green);margin-top:8px;}
+  .card.race .logLine{color:#7BE3B0;}
+  .cardRight{text-align:right;display:flex;flex-direction:column;justify-content:center;gap:2px;min-width:130px;}
+  .cardPace{font-family:var(--mono);font-size:28px;font-weight:800;line-height:1;}
+  .cardPaceLbl{font-family:var(--mono);font-size:10px;color:var(--mut2);}
+  .card.race .cardPaceLbl{color:#C9CCC4;}
+  .logBtn{margin-top:8px;border:2px solid currentColor;background:transparent;color:inherit;padding:6px 10px;font-weight:700;font-size:12px;transition:all .15s;}
+  .logBtn:hover{background:var(--ink);color:var(--paper);}
+  .card.race .logBtn:hover{background:var(--paper);color:var(--ink);}
+
+  /* paces grid */
+  .paceGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;}
+  .paceCard{background:var(--card);border:2px solid var(--ink);padding:14px 16px;}
+  .paceCardLbl{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--mut);text-transform:uppercase;}
+  .paceCardVal{font-family:var(--mono);font-size:30px;font-weight:800;margin-top:4px;}
+  .paceCardUnit{font-size:13px;color:var(--mut2);font-weight:400;}
+  .note{grid-column:1/-1;font-size:13px;color:var(--mut);line-height:1.5;margin-top:8px;}
+
+  /* progress */
+  .statRow{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px;}
+  .stat{background:var(--card);border:2px solid var(--ink);padding:12px 14px;}
+  .statLbl{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--mut);text-transform:uppercase;}
+  .statVal{font-family:var(--mono);font-size:28px;font-weight:800;margin-top:4px;}
+  .statUnit{font-size:13px;color:var(--mut2);font-weight:400;margin-left:4px;}
+  .chartBox{background:var(--card);border:2px solid var(--ink);padding:16px;}
+  .banner{margin-top:14px;padding:12px 16px;background:#E4F2EA;color:#155E3D;font-weight:600;font-size:14px;border:2px solid currentColor;}
+  .banner.warn{background:#FBE9E4;color:#A32B10;}
+
+  /* settings */
+  .settingsRow{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--line);font-size:14px;}
+  .dangerBtn{margin-top:24px;border:none;background:var(--accent);color:#fff;padding:12px 18px;font-weight:700;font-size:14px;transition:background .15s;}
+  .dangerBtn:hover{background:#A32B10;}
+
+  /* onboarding */
+  .onboard{max-width:460px;margin:8vh auto 0;}
+  .onboardTitle{font-size:40px;font-weight:900;font-stretch:72%;line-height:1.02;letter-spacing:-.02em;margin:4px 0 12px;}
+  .accentBig{color:var(--accent);font-family:var(--mono);font-size:64px;font-weight:800;}
+  .unitBig{font-size:22px;color:var(--mut);}
+  .onboardSub{font-size:15px;line-height:1.55;color:#43463F;}
+  .onboardForm{margin-top:20px;background:var(--card);border:2px solid var(--ink);padding:20px;box-shadow:6px 6px 0 var(--ink);}
+  .lbl{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--mut);text-transform:uppercase;margin:14px 0 6px;}
+  .distRow{display:flex;gap:8px;}
+  .distBtn{flex:1;border:2px solid var(--ink);background:transparent;padding:10px 0;font-weight:700;font-size:14px;}
+  .distBtn.on{background:var(--ink);color:var(--paper);}
+  input.field{width:100%;border:2px solid var(--ink);padding:12px 14px;font-size:18px;font-weight:700;background:#F9FAF7;}
+  .cta{width:100%;margin-top:18px;border:none;background:var(--accent);color:#fff;padding:14px 0;font-weight:800;font-size:16px;letter-spacing:.02em;transition:background .15s;}
+  .cta:hover{background:#C73312;}
+
+  /* modal */
+  .overlay{position:fixed;inset:0;background:rgba(21,25,30,.55);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50;}
+  .modal{background:var(--paper);border:3px solid var(--ink);padding:22px;width:100%;max-width:440px;max-height:90vh;overflow-y:auto;box-shadow:8px 8px 0 var(--accent);}
+  .modalTitle{margin:4px 0 6px;font-size:22px;font-weight:800;font-stretch:80%;}
+  .modalTarget{font-family:var(--mono);font-size:13px;color:#43463F;margin-bottom:4px;}
+  .rpeRow{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;}
+  .rpeBtn{border:2px solid var(--ink);background:transparent;padding:8px 0;font-weight:700;font-family:var(--mono);font-size:13px;}
+  .rpeBtn.on{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .rpeHint{font-family:var(--mono);font-size:11px;color:var(--mut);margin-top:6px;}
+  .modalBtns{display:flex;gap:10px;margin-top:20px;}
+  .ghostBtn{border:2px solid var(--ink);background:transparent;padding:12px 18px;font-weight:700;font-size:14px;}
+  .ghostBtn:hover{background:#E7E9E3;}
+
+  /* toast */
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:12px 20px;font-size:14px;font-weight:600;max-width:90vw;z-index:60;box-shadow:4px 4px 0 var(--accent);}
+  .toast.err{background:#A32B10;box-shadow:4px 4px 0 var(--ink);}
+  .loading{padding:60px;text-align:center;font-family:var(--mono);color:var(--mut);}
+
+  input:focus,button:focus-visible{outline:3px solid #E8401C55;outline-offset:1px;}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script>
+"use strict";
+
+/* ============================================================
+   PLAN MEDIA MARATÓN · 34 SEMANAS · OBJETIVO 3:53 /km (≈1h22)
+   ============================================================ */
+const GOAL_PACE = 233;       // 3:53 en segundos/km (1h22)
+const TOTAL_WEEKS = 34;
+const STORAGE_KEY = "hm34-state-v1";
+
+/* ---------- almacenamiento (localStorage con reserva en memoria) ---------- */
+const _mem = {};
+const storage = {
+  get(k){ try{ const v = localStorage.getItem(k); return v==null ? (k in _mem ? {value:_mem[k]} : null) : {value:v}; }catch(e){ return k in _mem ? {value:_mem[k]} : null; } },
+  set(k,v){ try{ localStorage.setItem(k,v); }catch(e){ _mem[k]=v; } },
+  del(k){ try{ localStorage.removeItem(k); }catch(e){} delete _mem[k]; }
+};
+
+/* ---------- utilidades de ritmo/tiempo ---------- */
+const fmtPace = (s) => {
+  if (!s || !isFinite(s)) return "–:––";
+  const m = Math.floor(s/60), ss = Math.round(s%60);
+  return m + ":" + String(ss).padStart(2,"0");
+};
+const fmtTime = (t) => {
+  const h = Math.floor(t/3600), m = Math.floor((t%3600)/60), s = Math.round(t%60);
+  return h>0 ? h+":"+String(m).padStart(2,"0")+":"+String(s).padStart(2,"0") : m+":"+String(s).padStart(2,"0");
+};
+const parsePace = (str) => {
+  const m = String(str).trim().match(/^(\d{1,2})[:.,'](\d{1,2})$/);
+  if(!m) return null;
+  const sec = parseInt(m[1])*60 + parseInt(m[2]);
+  return sec>=150 && sec<=540 ? sec : null;
+};
+const parseRaceTime = (str) => {
+  const p = String(str).trim().split(/[:.,]/).map(Number);
+  if(p.some(isNaN)) return null;
+  if(p.length===3) return p[0]*3600 + p[1]*60 + p[2];
+  if(p.length===2) return p[0]*60 + p[1];
+  return null;
+};
+const riegelHMPace = (dist, timeSec) => (timeSec * Math.pow(21.0975/dist, 1.06)) / 21.0975;
+
+const esc = (s) => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+/* ---------- ritmos de entrenamiento ---------- */
+const paces = (f) => ({
+  race:  { v:f,      label:"Ritmo competición" },
+  tempo: { v:f+4,    label:"Umbral / tempo" },
+  vo2:   { v:f-12,   label:"Series VO₂máx" },
+  short: { v:f-22,   label:"Series cortas" },
+  mara:  { v:f+15,   label:"Ritmo maratón" },
+  long:  { v:f+48,   label:"Tirada larga" },
+  easy:  { v:f+65,   label:"Rodaje suave" },
+});
+
+/* ---------- plan de 34 semanas ---------- */
+const isRecovery = (w) => w%4===0 && w<31;
+const phaseOf = (w) =>
+  w<=8  ? {n:1,name:"Base con calidad"} :
+  w<=16 ? {n:2,name:"Construcción"} :
+  w<=24 ? {n:3,name:"Específico I"} :
+  w<=31 ? {n:4,name:"Específico II"} :
+          {n:5,name:"Puesta a punto"};
+
+const S = (id,tipo,titulo,detalle,paceKey,quality=false,dur=null) => ({id,tipo,titulo,detalle,paceKey,quality,dur});
+
+function weekSessions(w){
+  const rec = isRecovery(w);
+  const ph = phaseOf(w).n;
+  const r = (x) => rec ? Math.round(x*0.7) : x;
+
+  if(ph===1){
+    const fart = Math.min(8+w,14);
+    let s1;
+    if(rec){
+      s1 = S("s1","FARTLEK","Fartlek "+(fart-4)+"×1′/1′","Calidad ligera en semana de descarga. Tramos a sensación de 5K, recuperación al trote.","short",true);
+    } else if(w%2===1){
+      const reps = Math.min(3+Math.floor(w/2),6);
+      s1 = S("s1","TEMPO",reps+"×1000 m en umbral","Intervalos de umbral (cruise): «cómodamente duro», recuperación 75″ al trote. Calienta 15′ con rectas.","tempo",true);
+    } else {
+      const reps = Math.min(6+w,12);
+      s1 = S("s1","SERIES",reps+"×400 m","Series cortas a ritmo 5K para meter velocidad pronto. Recuperación 60″ al trote. Calienta 15′.","short",true);
+    }
+    return [
+      s1,
+      S("s2","RODAJE","Rodaje suave "+r(40)+"′","Recuperación activa, muy cómodo.","easy",false,r(40)),
+      S("s3","FARTLEK","Fartlek "+(rec?fart-4:fart)+"×1′/1′","Segundo estímulo: tramos rápidos a sensación de 5K, recuperación al trote. Calienta y enfría 15′.","short",true),
+      S("s4","RODAJE","Rodaje medio "+r(50+w)+"′","Ritmo cómodo-estable + 4 rectas. Sin forzar.","easy",false,r(50+w)),
+      S("s5","LARGA","Tirada larga "+r(70+w*3)+"′", w>=5 ? "Progresiva: incluye 10–15′ a ritmo de umbral en la segunda mitad." : "Progresiva: el último cuarto algo más vivo, por debajo del umbral.","long",false,r(70+w*3)),
+    ];
+  }
+  if(ph===2){
+    const reps = rec?5:Math.min(6+Math.floor((w-9)/2),9);
+    const tempo = rec?15:Math.min(20+(w-9)*2,32);
+    return [
+      S("s1","SERIES",reps+"×800 m","Recuperación 90″ al trote. Calentamiento 20′ con rectas.","vo2",true),
+      S("s2","RODAJE","Rodaje suave "+r(45)+"′","Recuperación activa.","easy",false,r(45)),
+      S("s3","TEMPO","Tempo "+tempo+"′ continuo","Ritmo de umbral, esfuerzo «cómodamente duro». Calienta y enfría 15′.","tempo",true),
+      S("s4","RODAJE","Rodaje suave "+r(40)+"′","Muy fácil + 4 rectas.","easy",false,r(40)),
+      S("s5","LARGA","Tirada larga "+r(85+(w-9)*3)+"′","Los últimos 15–20′ a ritmo maratón.","long",false,r(85+(w-9)*3)),
+    ];
+  }
+  if(ph===3){
+    const reps = rec?4:Math.min(5+Math.floor((w-17)/3),7);
+    return [
+      S("s1","SERIES",reps+"×1000 m","Recuperación 2′ al trote. Busca regularidad entre repeticiones.","vo2",true),
+      S("s2","RODAJE","Rodaje suave "+r(45)+"′","Recuperación activa.","easy",false,r(45)),
+      S("s3","TEMPO","2×"+(rec?12:15)+"′ umbral","Recuperación 3′ al trote entre bloques.","tempo",true),
+      S("s4","RODAJE","Rodaje suave "+r(40)+"′","Muy fácil + 4 rectas.","easy",false,r(40)),
+      S("s5","LARGA","Tirada larga "+r(100+(w-17)*2)+"′","Incluye "+(rec?20:25+(w-17))+"′ a ritmo de competición en la segunda mitad.","long",false,r(100+(w-17)*2)),
+    ];
+  }
+  if(ph===4){
+    const kmRace = rec?6:Math.min(8+Math.floor((w-25)/2),12);
+    return [
+      S("s1","SERIES","3×2000 m","Ligeramente más rápido que ritmo de competición. Recuperación 2′30″.","race",true),
+      S("s2","RODAJE","Rodaje suave "+r(45)+"′","Recuperación activa.","easy",false,r(45)),
+      S("s3","RITMO",kmRace+" km a ritmo competición","Sesión clave: simula el esfuerzo de carrera. Calienta 15′.","race",true),
+      S("s4","RODAJE","Rodaje suave "+r(40)+"′","Muy fácil + 4 rectas.","easy",false,r(40)),
+      S("s5","LARGA","Tirada larga "+r(110)+"′","Con "+(rec?30:40)+"′ a ritmo de competición repartidos en bloques.","long",false,r(110)),
+    ];
+  }
+  if(w===32) return [
+    S("s1","SERIES","5×1000 m","A ritmo de competición exacto. Recuperación 2′.","race",true),
+    S("s2","RODAJE","Rodaje suave 40′","Fácil.","easy",false,40),
+    S("s3","TEMPO","Tempo 15′","Último estímulo de umbral.","tempo",true),
+    S("s4","RODAJE","Rodaje suave 35′","Fácil + 4 rectas.","easy",false,35),
+    S("s5","LARGA","Tirada 75′","Con 20′ a ritmo de competición.","long",false,75),
+  ];
+  if(w===33) return [
+    S("s1","SERIES","4×800 m","A ritmo de competición, sensaciones frescas.","race",true),
+    S("s2","RODAJE","Rodaje suave 35′","Fácil.","easy",false,35),
+    S("s3","RITMO","3 km a ritmo competición","Corto y controlado.","race",true),
+    S("s4","RODAJE","Rodaje suave 30′","Fácil.","easy",false,30),
+    S("s5","LARGA","Tirada 60′","Toda suave.","long",false,60),
+  ];
+  return [
+    S("s1","RODAJE","Rodaje suave 30′","Fácil + 4 rectas.","easy",false,30),
+    S("s2","ACTIVACIÓN","20′ + 4×200 m","Activación a ritmo de competición. Dos días antes de la carrera.","race",false),
+    S("s3","RODAJE","Rodaje suave 20′","Víspera: soltar piernas, opcional.","easy",false,20),
+    S("s4","CARRERA","MEDIA MARATÓN · 21,1 km","Sal conservador los primeros 3 km (+3–5 s/km) y aprieta del 15 en adelante. ¡A por el 1h22!","race",true),
+  ];
+}
+
+/* ---------- lógica adaptativa ---------- */
+function adaptFitness(fitness, prescribed, actual, rpe, initialPace){
+  const delta = prescribed - actual;
+  let adj = Math.max(-5, Math.min(4, delta*0.35));
+  if(rpe>=9) adj = Math.min(adj,0) - 1.5;
+  else if(rpe>=8 && adj>0) adj *= 0.4;
+  else if(rpe<=4 && delta>=-2) adj += 1;
+  const next = fitness - adj;
+  const floor = GOAL_PACE - 6;
+  const ceil = initialPace + 20;
+  return { next: Math.min(Math.max(next,floor),ceil), adj };
+}
+
+/* ============================================================
+   ESTADO + RENDER (JavaScript puro)
+   ============================================================ */
+let state = null;                 // datos del plan persistidos
+const ui = { tab:"semana", viewWeek:1, modal:null };  // ui.modal = {week, sessId} | null
+let toastTimer = null;
+
+function currentWeekOf(startDate){
+  const days = Math.floor((Date.now() - new Date(startDate).getTime())/86400000);
+  return Math.min(Math.max(Math.floor(days/7)+1,1), TOTAL_WEEKS);
+}
+function save(){ storage.set(STORAGE_KEY, JSON.stringify(state)); }
+
+function showToast(msg, err=false){
+  let t = document.getElementById("toast");
+  if(!t){ t = document.createElement("div"); t.id="toast"; document.body.appendChild(t); }
+  t.className = "toast" + (err?" err":"");
+  t.textContent = msg;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>{ if(t) t.remove(); }, 4200);
+}
+
+/* ---------- acciones ---------- */
+function startPlan(dist, timeStr){
+  const t = parseRaceTime(timeStr);
+  if(!t){ showToast("Formato de tiempo no válido. Usa mm:ss o h:mm:ss.", true); return; }
+  const est = Math.round(riegelHMPace(dist,t));
+  if(est < GOAL_PACE-10 || est > 420){ showToast("Ese tiempo no parece coherente con la distancia. Revísalo.", true); return; }
+  state = {
+    startDate: new Date().toISOString(),
+    initialPace: est, fitnessPace: est,
+    history: [{date:new Date().toISOString(), pace:est, note:"Punto de partida"}],
+    logs: {}, hardStreak: 0,
+  };
+  save();
+  ui.viewWeek = 1; ui.tab = "semana";
+  render();
+  showToast("Plan creado. Ritmo de media estimado hoy: "+fmtPace(est)+" /km.");
+}
+
+function logSession(weekN, sess, paceStr, rpe, note){
+  const actual = parsePace(paceStr);
+  if(!actual){ showToast("Ritmo no válido. Formato m:ss, p. ej. 3:52.", true); return; }
+  const f = state.fitnessPace;
+  const prescribed = paces(f)[sess.paceKey].v;
+  const key = "w"+weekN+"-"+sess.id;
+  state.logs[key] = { pace:actual, rpe, note, date:new Date().toISOString() };
+
+  let msg;
+  if(sess.quality){
+    const {next, adj} = adaptFitness(f, prescribed, actual, rpe, state.initialPace);
+    state.fitnessPace = Math.round(next*10)/10;
+    state.history.push({date:new Date().toISOString(), pace:state.fitnessPace});
+    state.hardStreak = rpe>=9 ? state.hardStreak+1 : 0;
+    if(adj>0.5) msg = "Buen trabajo: ritmos ajustados "+Math.abs(adj).toFixed(1)+" s/km más rápidos.";
+    else if(adj<-0.5) msg = "Sesión exigente: ritmos suavizados "+Math.abs(adj).toFixed(1)+" s/km para asimilar la carga.";
+    else msg = "Sesión en el clavo. Ritmos sin cambios.";
+    if(state.hardStreak>=3) msg += " ⚠ Llevas 3 sesiones al límite: prioriza descanso esta semana.";
+  } else {
+    state.hardStreak = rpe>=9 ? state.hardStreak+1 : state.hardStreak;
+    msg = rpe>=8 ? "Registrado. Un rodaje suave no debería costar tanto: vigila la fatiga."
+                 : "Registrado. Los rodajes suaves no modifican los ritmos.";
+  }
+  save();
+  ui.modal = null;
+  render();
+  showToast(msg);
+}
+
+function resetPlan(){
+  storage.del(STORAGE_KEY);
+  state = null; ui.tab = "semana"; ui.modal = null;
+  render();
+}
+
+/* ---------- render principal ---------- */
+function render(){
+  const root = document.getElementById("root");
+  if(state === null){ root.innerHTML = onboardHTML(); wire(); return; }
+
+  const f = state.fitnessPace;
+  const P = paces(f);
+  const curWeek = currentWeekOf(state.startDate);
+  const progress = Math.min(100, Math.max(0, Math.round(((state.initialPace - f) / Math.max(state.initialPace - GOAL_PACE,1))*100)));
+  const raceDate = new Date(new Date(state.startDate).getTime() + (TOTAL_WEEKS-1)*7*86400000);
+
+  let body = "";
+  if(ui.tab==="semana")   body = weekTabHTML(P, curWeek);
+  if(ui.tab==="progreso") body = progressTabHTML();
+  if(ui.tab==="ritmos")   body = pacesTabHTML(P);
+  if(ui.tab==="ajustes")  body = settingsTabHTML();
+
+  root.innerHTML =
+    '<div class="shell">' +
+      '<header>' +
+        '<div class="headerTop">' +
+          '<div>' +
+            '<div class="eyebrow">PLAN 34 SEMANAS · MEDIA MARATÓN</div>' +
+            '<div class="bigTitle">OBJETIVO <span class="accent">3:53</span><span class="unit">/km</span></div>' +
+          '</div>' +
+          '<div class="bibBox">' +
+            '<div class="bibLabel">RITMO ACTUAL</div>' +
+            '<div class="bibPace">'+fmtPace(f)+'</div>' +
+            '<div class="bibSub">≈ '+fmtTime(f*21.0975)+' en meta</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="progressRow">' +
+          '<div class="progressTrack"><div class="progressFill" style="width:'+progress+'%"></div><div class="progressGoal"></div></div>' +
+          '<div class="progressTxt">'+progress+'% hacia 3:53 · carrera ≈ '+raceDate.toLocaleDateString("es-ES",{day:"numeric",month:"short",year:"numeric"})+'</div>' +
+        '</div>' +
+      '</header>' +
+      '<nav class="tabs">' +
+        tabBtn("semana","Entrenamientos") + tabBtn("progreso","Progreso") +
+        tabBtn("ritmos","Mis ritmos") + tabBtn("ajustes","Ajustes") +
+      '</nav>' +
+      '<main>'+body+'</main>' +
+    '</div>' +
+    (ui.modal ? modalHTML(P) : "");
+  wire();
+}
+
+const tabBtn = (k,l) => '<button class="tab'+(ui.tab===k?" on":"")+'" data-tab="'+k+'">'+l+'</button>';
+
+function weekTabHTML(P, curWeek){
+  const w = ui.viewWeek;
+  const sessions = weekSessions(w);
+  const ph = phaseOf(w);
+  let html =
+    '<div class="weekNav">' +
+      '<button class="navBtn" data-week="'+(w-1)+'"'+(w<=1?" disabled":"")+'>←</button>' +
+      '<div style="text-align:center">' +
+        '<div class="weekNum">SEMANA '+w+'<span class="weekOf">/'+TOTAL_WEEKS+'</span></div>' +
+        '<div class="weekPhase">'+ph.name+(isRecovery(w)?" · descarga":"")+(w===curWeek?" · esta semana":"")+'</div>' +
+      '</div>' +
+      '<button class="navBtn" data-week="'+(w+1)+'"'+(w>=TOTAL_WEEKS?" disabled":"")+'>→</button>' +
+    '</div>';
+  if(w!==curWeek) html += '<button class="todayBtn" data-week="'+curWeek+'">Ir a la semana actual ('+curWeek+')</button>';
+  html += '<div class="sessionList">';
+  sessions.forEach((sess,i)=>{
+    const log = state.logs["w"+w+"-"+sess.id];
+    const p = P[sess.paceKey];
+    const isRace = sess.tipo==="CARRERA";
+    html +=
+      '<div class="card'+(isRace?" race":"")+(log?" done":"")+'">' +
+        '<div class="cardLane">'+(isRace?"★":(i+1))+'</div>' +
+        '<div class="cardBody">' +
+          '<div class="cardType">'+sess.tipo+(sess.quality&&!isRace?" · CALIDAD":"")+'</div>' +
+          '<div class="cardTitle">'+esc(sess.titulo)+'</div>' +
+          '<div class="cardDetail">'+esc(sess.detalle)+'</div>' +
+          (log ? '<div class="logLine">✓ Hecho a <b>'+fmtPace(log.pace)+'</b> /km · RPE '+log.rpe+(log.note?" · "+esc(log.note):"")+'</div>' : '') +
+        '</div>' +
+        '<div class="cardRight">' +
+          '<div class="cardPace">'+fmtPace(p.v)+'</div>' +
+          '<div class="cardPaceLbl">/km · '+p.label.toLowerCase()+'</div>' +
+          '<button class="logBtn" data-log="'+sess.id+'">'+(log?"Editar marca":"Registrar marca")+'</button>' +
+        '</div>' +
+      '</div>';
+  });
+  html += '</div>';
+  return html;
+}
+
+function pacesTabHTML(P){
+  let html = '<div class="paceGrid">';
+  for(const k in P){
+    html += '<div class="paceCard"><div class="paceCardLbl">'+P[k].label+'</div>' +
+            '<div class="paceCardVal">'+fmtPace(P[k].v)+'<span class="paceCardUnit">/km</span></div></div>';
+  }
+  html += '<p class="note">Estos ritmos se recalculan automáticamente cada vez que registras una sesión de calidad (series, tempos y ritmos de competición). Los rodajes suaves no los modifican, pero sirven para vigilar tu fatiga.</p></div>';
+  return html;
+}
+
+function settingsTabHTML(){
+  return '<div style="padding:8px 4px">' +
+    '<div class="settingsRow"><span>Inicio del plan</span><b>'+new Date(state.startDate).toLocaleDateString("es-ES")+'</b></div>' +
+    '<div class="settingsRow"><span>Ritmo de partida</span><b>'+fmtPace(state.initialPace)+' /km</b></div>' +
+    '<div class="settingsRow"><span>Ritmo objetivo</span><b>3:53 /km · 1:22:00</b></div>' +
+    '<div class="settingsRow"><span>Sesiones registradas</span><b>'+Object.keys(state.logs).length+'</b></div>' +
+    '<button class="dangerBtn" data-reset="1">Borrar plan y empezar de cero</button>' +
+  '</div>';
+}
+
+function progressTabHTML(){
+  const h = state.history;
+  const W=640, H=240, pad=36;
+  const maxP = Math.max(...h.map(d=>d.pace), state.initialPace) + 6;
+  const minP = GOAL_PACE - 6;
+  const x = (i)=> pad + (i/Math.max(h.length-1,1))*(W-pad*2);
+  const y = (p)=> pad + ((p-minP)/(maxP-minP))*(H-pad*2);
+  const path = h.map((d,i)=> (i?"L":"M")+x(i)+","+y(d.pace)).join(" ");
+  const cur = state.fitnessPace;
+  const gap = cur - GOAL_PACE;
+  const quality = Object.values(state.logs).length;
+
+  const stat = (label,val,unit,good)=>'<div class="stat"><div class="statLbl">'+label+'</div><div class="statVal"'+(good?' style="color:#1E8A5A"':"")+'>'+val+'<span class="statUnit">'+unit+'</span></div></div>';
+
+  let dots = h.map((d,i)=>'<circle cx="'+x(i)+'" cy="'+y(d.pace)+'" r="4" fill="#15191E"/>').join("");
+  if(h.length>0) dots += '<circle cx="'+x(h.length-1)+'" cy="'+y(h[h.length-1].pace)+'" r="6" fill="#E8401C"/>';
+
+  let html =
+    '<div class="statRow">' +
+      stat("Ritmo estimado hoy", fmtPace(cur), "/km", false) +
+      stat("Te faltan", gap<=0?"0":Math.round(gap), "s/km", gap<=3) +
+      stat("Sesiones registradas", quality, "", false) +
+    '</div>' +
+    '<div class="chartBox">' +
+      '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto;display:block">' +
+        '<line x1="'+pad+'" x2="'+(W-pad)+'" y1="'+y(GOAL_PACE)+'" y2="'+y(GOAL_PACE)+'" stroke="#E8401C" stroke-dasharray="6 5" stroke-width="2"/>' +
+        '<text x="'+(W-pad)+'" y="'+(y(GOAL_PACE)-7)+'" text-anchor="end" font-size="12" fill="#E8401C" font-weight="700" font-family="ui-monospace,monospace">OBJETIVO 3:53</text>' +
+        '<line x1="'+pad+'" x2="'+(W-pad)+'" y1="'+y(state.initialPace)+'" y2="'+y(state.initialPace)+'" stroke="#C9CCC4" stroke-width="1"/>' +
+        '<text x="'+pad+'" y="'+(y(state.initialPace)-7)+'" font-size="11" fill="#7A7E74" font-family="ui-monospace,monospace">salida '+fmtPace(state.initialPace)+'</text>' +
+        '<path d="'+path+'" fill="none" stroke="#15191E" stroke-width="2.5" stroke-linejoin="round"/>' +
+        dots +
+      '</svg>' +
+      '<div class="note">Cada punto es un recálculo de tu ritmo tras una sesión de calidad.</div>' +
+    '</div>';
+  if(gap<=0) html += '<div class="banner">🏁 Tu forma actual ya está en ritmo objetivo. Consolida y no fuerces de más.</div>';
+  if(state.hardStreak>=3) html += '<div class="banner warn">⚠ Varias sesiones seguidas al límite. Mete una semana suave: el progreso llega asimilando, no acumulando fatiga.</div>';
+  return html;
+}
+
+function modalHTML(P){
+  const w = ui.modal.week;
+  const sess = weekSessions(w).find(s=>s.id===ui.modal.sessId);
+  const existing = state.logs["w"+w+"-"+sess.id];
+  const prescribed = P[sess.paceKey].v;
+  const rpe = ui.modal.rpe != null ? ui.modal.rpe : (existing ? existing.rpe : 6);
+  const paceVal = ui.modal.pace != null ? ui.modal.pace : (existing ? fmtPace(existing.pace) : "");
+  const noteVal = ui.modal.note != null ? ui.modal.note : (existing ? (existing.note||"") : "");
+  const hint = rpe<=4?"Muy cómodo":rpe<=6?"Controlado":rpe<=8?"Exigente":"Al límite";
+
+  let rpeBtns = "";
+  for(let i=1;i<=10;i++) rpeBtns += '<button class="rpeBtn'+(rpe===i?" on":"")+'" data-rpe="'+i+'">'+i+'</button>';
+
+  return '<div class="overlay" data-close="1">' +
+    '<div class="modal" data-stop="1">' +
+      '<div class="cardType">SEMANA '+w+' · '+sess.tipo+'</div>' +
+      '<h3 class="modalTitle">'+esc(sess.titulo)+'</h3>' +
+      '<div class="modalTarget">Ritmo previsto: <b>'+fmtPace(prescribed)+' /km</b></div>' +
+      '<label class="lbl">Ritmo medio conseguido (/km)</label>' +
+      '<input class="field" id="m-pace" inputmode="numeric" placeholder="'+fmtPace(prescribed)+'" value="'+esc(paceVal)+'" autofocus />' +
+      '<label class="lbl">Esfuerzo percibido (RPE 1–10)</label>' +
+      '<div class="rpeRow">'+rpeBtns+'</div>' +
+      '<div class="rpeHint">'+hint+'</div>' +
+      '<label class="lbl">Notas (opcional)</label>' +
+      '<input class="field" id="m-note" placeholder="Viento, cuestas, sensaciones…" value="'+esc(noteVal)+'" />' +
+      '<div class="modalBtns">' +
+        '<button class="ghostBtn" data-close="1">Cancelar</button>' +
+        '<button class="cta" style="flex:1;margin-top:0" data-save="1">Guardar</button>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+function onboardHTML(){
+  const dist = ui.obDist != null ? ui.obDist : 10;
+  const distBtn = (d,l)=>'<button class="distBtn'+(dist===d?" on":"")+'" data-dist="'+d+'">'+l+'</button>';
+  const ph = dist===5?"20:30":dist===10?"42:00":"1:35:00";
+  return '<div class="shell"><div class="onboard">' +
+    '<div class="eyebrow">PLAN 34 SEMANAS · MEDIA MARATÓN</div>' +
+    '<h1 class="onboardTitle">OBJETIVO<br><span class="accentBig">3:53<span class="unitBig">/km</span></span></h1>' +
+    '<p class="onboardSub">Eso es un 1h22 en meta. Para calibrar tus ritmos de partida necesito una referencia reciente: una carrera o un test de los últimos 2 meses.</p>' +
+    '<div class="onboardForm">' +
+      '<label class="lbl">Distancia de referencia</label>' +
+      '<div class="distRow">'+distBtn(5,"5 km")+distBtn(10,"10 km")+distBtn(21.0975,"Media")+'</div>' +
+      '<label class="lbl">Tu tiempo (mm:ss o h:mm:ss)</label>' +
+      '<input class="field" id="ob-time" inputmode="numeric" placeholder="'+ph+'" value="'+(ui.obTime?esc(ui.obTime):"")+'" />' +
+      '<button class="cta" data-start="1">Crear mi plan</button>' +
+    '</div>' +
+  '</div></div>';
+}
+
+/* ---------- enlazado de eventos (delegación) ---------- */
+function wire(){
+  const root = document.getElementById("root");
+
+  root.onclick = (e)=>{
+    const t = e.target.closest("[data-tab],[data-week],[data-log],[data-reset],[data-rpe],[data-dist],[data-start],[data-save],[data-close],[data-stop]");
+    if(!t) return;
+
+    if(t.hasAttribute("data-stop")) return; // clic dentro del modal: no cerrar
+    if(t.dataset.tab){ ui.tab = t.dataset.tab; render(); return; }
+    if(t.dataset.week){ ui.viewWeek = parseInt(t.dataset.week); render(); return; }
+    if(t.dataset.log){ ui.modal = {week:ui.viewWeek, sessId:t.dataset.log, pace:null, rpe:null, note:null}; render(); return; }
+    if(t.dataset.reset){ if(confirm("¿Seguro que quieres borrar el plan y empezar de cero?")) resetPlan(); return; }
+
+    if(t.dataset.rpe){ syncModalInputs(); ui.modal.rpe = parseInt(t.dataset.rpe); render(); return; }
+    if(t.dataset.close){ ui.modal = null; render(); return; }
+    if(t.dataset.save){
+      const pace = document.getElementById("m-pace").value;
+      const note = document.getElementById("m-note").value;
+      const rpe = ui.modal.rpe != null ? ui.modal.rpe : 6;
+      const sess = weekSessions(ui.modal.week).find(s=>s.id===ui.modal.sessId);
+      logSession(ui.modal.week, sess, pace, rpe, note);
+      return;
+    }
+    if(t.dataset.dist){ ui.obDist = parseFloat(t.dataset.dist); const inp=document.getElementById("ob-time"); if(inp) ui.obTime=inp.value; render(); return; }
+    if(t.dataset.start){
+      const time = document.getElementById("ob-time").value;
+      const dist = ui.obDist != null ? ui.obDist : 10;
+      startPlan(dist, time);
+      return;
+    }
+  };
+}
+
+// conserva lo escrito en el modal al pulsar un botón RPE (que re-renderiza)
+function syncModalInputs(){
+  if(!ui.modal) return;
+  const p = document.getElementById("m-pace");
+  const n = document.getElementById("m-note");
+  if(p) ui.modal.pace = p.value;
+  if(n) ui.modal.note = n.value;
+}
+
+/* ---------- arranque ---------- */
+(function init(){
+  const r = storage.get(STORAGE_KEY);
+  if(r && r.value){
+    try{ state = JSON.parse(r.value); ui.viewWeek = currentWeekOf(state.startDate); }
+    catch(e){ state = null; }
+  }
+  render();
+})();
+</script>
+</body>
+</html>

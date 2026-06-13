@@ -70,6 +70,8 @@
   .card.race{background:var(--ink);color:#fff;}
   .card.gym{box-shadow:var(--sh2),inset 4px 0 0 var(--gym);}
   .card.done{box-shadow:var(--sh2),inset 4px 0 0 var(--green);}
+  .card.ghostCard{background:transparent;box-shadow:none;border:1px dashed var(--line);padding:14px 18px;gap:8px;}
+  .card.ghostCard .cardType{color:var(--mut2);}
   .cardHead{display:flex;align-items:center;gap:10px;}
   .cardIcon{font-size:var(--fs-lg);line-height:1;flex:none;}
   .cardType{font-size:var(--fs-xs);letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700;}
@@ -130,6 +132,27 @@
   .banner{margin-top:16px;padding:14px 18px;background:#EAF5EC;color:#1E6B36;font-weight:500;font-size:var(--fs-sm);border-radius:var(--r);border:1px solid #CDE7D3;}
   .banner.warn{background:#FCEDE6;color:#B23D14;border-color:#F4D2C2;}
 
+  /* ============ CALENDARIO ============ */
+  .calNav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .calTitle{font-size:var(--fs-lg);font-weight:800;letter-spacing:.04em;}
+  .navBtn{border:1px solid var(--line);background:var(--card);color:var(--ink);width:38px;height:38px;border-radius:10px;font-size:var(--fs-md);}
+  .navBtn:hover{border-color:var(--ink);}
+  .todayBtn{border:1px solid var(--line);background:var(--card);color:var(--mut);padding:8px 14px;border-radius:99px;font-size:var(--fs-xs);font-weight:600;margin-bottom:12px;}
+  .todayBtn:hover{border-color:var(--ink);color:var(--ink);}
+  .calGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
+  .calDow{text-align:center;font-size:var(--fs-xs);font-weight:700;color:var(--mut2);letter-spacing:.08em;padding-bottom:4px;}
+  .calCell{background:var(--card);border-radius:10px;padding:6px;min-height:78px;box-shadow:var(--sh);display:flex;flex-direction:column;gap:3px;}
+  .calCell.calOut{opacity:.35;}
+  .calCell.calNoplan{background:transparent;box-shadow:none;}
+  .calCell.calToday{box-shadow:var(--sh),inset 0 0 0 2px var(--accent);}
+  .calDayNum{font-size:var(--fs-xs);font-weight:700;color:var(--mut2);}
+  .calPill{font-size:10px;line-height:1.3;font-weight:600;color:#fff;background:var(--pillColor);border-radius:5px;padding:2px 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .calPill.calDone{opacity:.55;text-decoration:line-through;}
+  .calPill.calRace{font-weight:800;}
+  .calLegend{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px;font-size:var(--fs-xs);color:var(--mut);}
+  .calLegendItem{display:flex;align-items:center;gap:5px;}
+  .calDot{width:9px;height:9px;border-radius:3px;display:inline-block;}
+
   /* ============ DASHBOARD / RESUMEN ============ */
   .todayCard{background:var(--ink);color:#fff;border-radius:18px;padding:22px 24px;margin-bottom:16px;box-shadow:var(--sh2);}
   .todayCard.todayRace{background:var(--accent);}
@@ -141,6 +164,45 @@
   .todayMetaRow{display:flex;gap:20px;flex-wrap:wrap;margin-top:14px;font-size:var(--fs-sm);color:#C9CCD6;}
   .todayCard.todayRace .todayMetaRow{color:#FFE4D6;}
   .todayMetaRow b{font-family:var(--mono);font-size:var(--fs-lg);color:#fff;}
+
+  .bottomNav{display:none;}
+  .moreMenuOverlay{display:none;}
+  @media (max-width:640px){
+    .bottomNav{
+      display:flex; position:fixed; left:0; right:0; bottom:0; z-index:40;
+      background:var(--card); border-top:1px solid var(--line);
+      padding:6px 4px env(safe-area-inset-bottom,6px);
+      box-shadow:0 -2px 12px rgba(0,0,0,.06);
+    }
+    .bnItem{flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; padding:6px 0; color:var(--mut2); border:none; background:transparent; border-radius:10px;}
+    .bnItem.on{color:var(--accent-dk); background:#FDE9DD;}
+    .bnIcon{font-size:20px; line-height:1;}
+    .bnLabel{font-size:10px; font-weight:700;}
+    .moreMenuOverlay{display:flex; position:fixed; inset:0; background:rgba(15,21,37,.35); z-index:50; align-items:flex-end; justify-content:center;}
+    .moreMenu{background:var(--card); border-radius:18px 18px 0 0; width:100%; max-width:480px; padding:10px; padding-bottom:calc(78px + env(safe-area-inset-bottom,0px)); display:flex; flex-direction:column; gap:4px;}
+    .moreMenuItem{text-align:left; padding:14px 16px; border-radius:12px; border:none; background:transparent; font-size:var(--fs-md); font-weight:700; color:var(--ink);}
+    .moreMenuItem.on{background:#FDE9DD; color:var(--accent-dk);}
+  }
+
+  .coachRow{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:20px;}
+  .coachLbl{font-size:var(--fs-sm);color:var(--mut);font-weight:600;margin-right:4px;}
+  .coachBtn{border:1px solid var(--line);background:var(--card);color:var(--ink);padding:9px 16px;border-radius:99px;font-size:var(--fs-sm);font-weight:600;box-shadow:var(--sh);transition:all .15s;}
+  .coachBtn:hover{border-color:var(--accent);color:var(--accent-dk);}
+
+  .achSection{margin-bottom:20px;}
+  .achHeader{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;}
+  .achTitle{font-size:var(--fs-md);font-weight:800;}
+  .achCount{font-size:var(--fs-sm);color:var(--mut);font-family:var(--mono);}
+  .achGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;}
+  .achCard{background:var(--card);border-radius:14px;box-shadow:var(--sh);padding:12px 14px;display:flex;gap:10px;opacity:.55;}
+  .achCard.achDone{opacity:1;box-shadow:var(--sh2),inset 4px 0 0 var(--accent);}
+  .achIcon{font-size:24px;flex:none;line-height:1;}
+  .achBody{min-width:0;}
+  .achCardTitle{font-size:var(--fs-sm);font-weight:700;}
+  .achDesc{font-size:var(--fs-xs);color:var(--mut);line-height:1.35;margin-top:2px;}
+  .achBar{height:5px;background:var(--paper);border-radius:99px;margin-top:8px;overflow:hidden;}
+  .achBarFill{height:100%;background:var(--accent);border-radius:99px;}
+  .achValue{font-size:var(--fs-xs);font-weight:700;color:var(--accent-dk);font-family:var(--mono);margin-top:6px;}
   .dashGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px;}
   .statWide{grid-column:1/-1;}
   .statAccent{background:var(--ink);color:#fff;}
@@ -203,6 +265,14 @@
   .modal{background:var(--card);border-radius:18px;padding:24px;width:100%;max-width:440px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 50px rgba(15,21,37,.25);}
   .modalTitle{margin:6px 0 6px;font-size:var(--fs-lg);font-weight:700;letter-spacing:-.01em;}
   .modalTarget{font-size:var(--fs-sm);color:var(--mut);margin-bottom:6px;}
+  .trackerModal{text-align:center;}
+  .trackerClock{font-family:var(--mono);font-size:56px;font-weight:700;letter-spacing:-.02em;margin:14px 0;}
+  .trackerBadge{display:inline-block;background:var(--paper);color:var(--mut);font-size:var(--fs-xs);font-weight:700;padding:5px 14px;border-radius:99px;margin-bottom:10px;}
+  .trackerBadge.wlOk{background:#E7F4EC;color:var(--green);}
+  .trackerStats{justify-content:center;gap:28px;margin-bottom:14px;}
+  .trackerStats .statChip{align-items:center;}
+  .trackerWarn{font-size:var(--fs-sm);color:var(--accent-dk);background:#FCEDE6;border-radius:10px;padding:8px 12px;margin-bottom:10px;}
+  .trackerNote{font-size:var(--fs-xs);color:var(--mut2);margin:6px 0 14px;line-height:1.4;}
   .rpeRow{display:grid;grid-template-columns:repeat(10,1fr);gap:5px;}
   .rpeBtn{border:1px solid var(--line);background:var(--card);color:var(--ink);padding:9px 0;font-weight:600;font-size:var(--fs-sm);border-radius:8px;transition:all .12s;}
   .rpeBtn.on{background:var(--accent);border-color:var(--accent);color:#fff;}
@@ -221,6 +291,11 @@
 
   /* ============ RESPONSIVE MÓVIL ============ */
   @media (max-width:640px){
+    .tabs{display:none;}
+    .calCell{min-height:56px;padding:4px;}
+    .calPill{font-size:9px;padding:1px 3px;}
+    .calDayNum{font-size:10px;}
+    .calTitle{font-size:var(--fs-md);}
     .shell{padding:14px 12px 90px;}
     .logoHeader{height:46px;}
     .titleRow{gap:10px;}
@@ -324,6 +399,15 @@ const LOGO="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAbgAAAGkCAYAAABD3jBTAA
 const STORAGE_KEY = "hm34-state-v3";
 
 /* ---------- configuración por tipo de prueba ---------- */
+// días de la semana en orden Lu..Do, con su índice de Date.getDay() (0=Dom..6=Sáb)
+const WEEK_ORDER = [1,2,3,4,5,6,0];
+const DAY_LABELS = {0:"D",1:"L",2:"M",3:"X",4:"J",5:"V",6:"S"};
+const DAY_NAMES_FULL = {0:"Domingo",1:"Lunes",2:"Martes",3:"Miércoles",4:"Jueves",5:"Viernes",6:"Sábado"};
+function dayToggle(o, dayIdx, _unused){
+  const on=(o.trainingDays||[]).includes(dayIdx);
+  return '<button class="selBtn'+(on?" on":"")+'" data-day="'+dayIdx+'" title="'+DAY_NAMES_FULL[dayIdx]+'">'+DAY_LABELS[dayIdx]+'</button>';
+}
+
 const EVENTS = {
   "5k":  { dist:5,       label:"5 km",          minW:6,  idealW:10, maxW:16, taper:1 },
   "10k": { dist:10,      label:"10 km",         minW:6,  idealW:12, maxW:18, taper:1 },
@@ -347,6 +431,15 @@ const storage = {
 const fmtPace = (s)=>{ if(!s||!isFinite(s)) return "–:––"; const m=Math.floor(s/60),ss=Math.round(s%60); return m+":"+String(ss).padStart(2,"0"); };
 const fmtTime = (t)=>{ const h=Math.floor(t/3600),m=Math.floor((t%3600)/60),s=Math.round(t%60); return h>0?h+":"+String(m).padStart(2,"0")+":"+String(s).padStart(2,"0"):m+":"+String(s).padStart(2,"0"); };
 const parsePace = (str)=>{ const m=String(str).trim().match(/^(\d{1,2})[:.,'](\d{1,2})$/); if(!m) return null; const sec=parseInt(m[1])*60+parseInt(m[2]); return sec>=140&&sec<=600?sec:null; };
+// parsea un tiempo total tipo "1:23:45" o "23:45" -> segundos (sin límites de rango)
+const parseTimeStr = (str)=>{
+  const s=String(str).trim();
+  let m=s.match(/^(\d{1,2}):(\d{1,2}):(\d{1,2})$/);
+  if(m) return parseInt(m[1])*3600+parseInt(m[2])*60+parseInt(m[3]);
+  m=s.match(/^(\d{1,3}):(\d{1,2})$/);
+  if(m) return parseInt(m[1])*60+parseInt(m[2]);
+  return null;
+};
 const clamp = (x,a,b)=>Math.min(Math.max(x,a),b);
 const esc = (s)=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
@@ -842,9 +935,20 @@ function applyOverrides(runs, w){
   return out;
 }
 
-function buildWeek(w, runDays, gymDays, totalWeeks, ev, goalPace){
+// reduce un 15% la duración indicada en el título de sesiones de rodaje/tirada larga
+// (mismo recorte que usan las semanas de descarga, aplicado aquí por fatiga real)
+function applyWeekVolumeCut(sess){
+  if(sess.tipo!=="RODAJE" && sess.tipo!=="LARGA") return sess;
+  const m=sess.titulo.match(/^(.*\D)(\d+)(′)$/);
+  if(!m) return sess;
+  const mins=Math.max(15, Math.round(parseInt(m[2])*0.85));
+  return {...sess, titulo:m[1]+mins+m[3]};
+}
+
+// sesiones "originales" de la semana, antes de aplicar posposiciones/eliminaciones
+// (se usa para poder mostrar y deshacer las sesiones ocultas por overrides)
+function buildWeekRaw(w, runDays, totalWeeks, ev, goalPace){
   let runs=runSessions(w, totalWeeks, ev, goalPace);
-  // aplica el ajuste de volumen aprendido (solo a sesiones futuras: state existe ya en este punto)
   const adj=(typeof state!=="undefined" && state && state.volumeAdj) || null;
   if(adj){
     runs=runs.map(s=>{
@@ -862,7 +966,17 @@ function buildWeek(w, runDays, gymDays, totalWeeks, ev, goalPace){
     runs=chosen.map(id=>byId[id]).filter(Boolean);
     if(runDays>=6) runs.splice(runs.length-1,0,S("s6","RODAJE","Rodaje suave 35′","Día extra de volumen aeróbico, muy suave.","easy"));
   }
+  return runs;
+}
+
+function buildWeek(w, runDays, gymDays, totalWeeks, ev, goalPace){
+  let runs=buildWeekRaw(w, runDays, totalWeeks, ev, goalPace);
   runs=applyOverrides(runs, w);
+  // recorte de volumen por fatiga sostenida: activo durante la semana de detección y la siguiente
+  const wa=(typeof state!=="undefined" && state && state.weekAdj) || null;
+  if(wa && wa.active && wa.since!=null && (w===wa.since || w===wa.since+1)){
+    runs=runs.map(applyWeekVolumeCut);
+  }
   return runs.concat(gymSessions(w, gymDays, totalWeeks, ev));
 }
 
@@ -881,15 +995,131 @@ function adaptFitness(fitness, prescribed, actual, rpe, initialPace, goalPace){
    ESTADO + RENDER
    ============================================================ */
 let state=null;
-const ui={ tab:"resumen", viewWeek:1, modal:null, ob:null };
+const ui={ tab:"resumen", viewWeek:1, modal:null, ob:null, tracker:null, calMonth:null, showAllAchievements:false, moreMenuOpen:false,
+  calc:{ dist:"10", time:"", age:"", fcMax:"", fcRest:"" } };
 const auth={ user:null, ready:false, form:{mode:"login", email:"", pass:"", pass2:""} };
 let toastTimer=null;
 
 function defaultOb(){
   const d=new Date(); d.setMonth(d.getMonth()+4);
-  return { event:"hm", raceDate:d.toISOString().slice(0,10), runDays:4, gymDays:2, age:"", height:"", weight:"", c10:"", cHM:"", t10:"", tHM:"" };
+  return { event:"hm", raceDate:d.toISOString().slice(0,10), trainingDays:[1,3,5,6,0], gymDays:2, age:"", height:"", weight:"", c10:"", cHM:"", t10:"", tHM:"" };
 }
 function currentWeekOf(sd,totalWeeks){ const d=Math.floor((Date.now()-new Date(sd).getTime())/86400000); return Math.min(Math.max(Math.floor(d/7)+1,1),totalWeeks); }
+
+// fecha del lunes de la semana w del plan
+function mondayOfWeek(w){
+  const start=new Date(state.startDate);
+  const startDay=start.getDay(); // 0=Dom..6=Sáb
+  const mondayOffset = startDay===0 ? -6 : 1-startDay;
+  const monday=new Date(start); monday.setDate(start.getDate()+mondayOffset);
+  monday.setHours(0,0,0,0);
+  monday.setDate(monday.getDate() + (w-1)*7);
+  return monday;
+}
+// fecha concreta para la sesión nº `idx` (0-based, en el orden de buildWeek) de la semana w
+function dateForSession(w, idx){
+  const days=state.profile.trainingDays || WEEK_ORDER.slice(0,state.profile.runDays);
+  const dayOfWeek=days[idx % days.length]; // 0=Dom..6=Sáb
+  const monday=mondayOfWeek(w);
+  const offset=WEEK_ORDER.indexOf(dayOfWeek); // 0..6, posición Lu..Do
+  const d=new Date(monday); d.setDate(monday.getDate()+offset);
+  return d;
+}
+const YMD=(d)=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+
+// icono y color por tipo de sesión, para el calendario
+const CAL_COLOR={SERIES:"#FC5E15",TEMPO:"#FC5E15",FARTLEK:"#FC5E15",RITMO:"#FC5E15",LARGA:"#0F1525",RODAJE:"#9A927F",ACTIVACIÓN:"#C8901F",CARRERA:"#FC5E15",GIMNASIO:"#C8901F"};
+const CAL_ICON={SERIES:"⚡",TEMPO:"🔥",FARTLEK:"⚡",RITMO:"🎯",LARGA:"🛣️",RODAJE:"👟",ACTIVACIÓN:"✨",CARRERA:"🏁",GIMNASIO:"🏋️"};
+
+// construye un índice fecha (YYYY-MM-DD) -> lista de {week, sess, sessIdx}
+function buildSessionCalendar(){
+  const idx={};
+  for(let w=1;w<=state.totalWeeks;w++){
+    const ss=buildWeek(w,state.profile.runDays,state.profile.gymDays,state.totalWeeks,state.event,state.goalPace);
+    const runs=ss.filter(s=>!s.gym);
+    runs.forEach((sess,i)=>{
+      const d=YMD(dateForSession(w,i));
+      if(!idx[d]) idx[d]=[];
+      idx[d].push({week:w,sess,sessIdx:i});
+    });
+    // el gimnasio se reparte en los días "libres" de esa semana, si los hay;
+    // si no, se acumula en el último día de entrenamiento
+    const gyms=ss.filter(s=>s.gym);
+    const days=state.profile.trainingDays||WEEK_ORDER.slice(0,state.profile.runDays);
+    const freeSlots=WEEK_ORDER.filter(d=>!days.includes(d));
+    gyms.forEach((g,i)=>{
+      let d;
+      if(freeSlots[i]!=null){
+        const monday=mondayOfWeek(w);
+        const off=WEEK_ORDER.indexOf(freeSlots[i]);
+        const dd=new Date(monday); dd.setDate(monday.getDate()+off);
+        d=YMD(dd);
+      } else {
+        d=YMD(dateForSession(w,runs.length-1));
+      }
+      if(!idx[d]) idx[d]=[];
+      idx[d].push({week:w,sess:g,sessIdx:-1});
+    });
+  }
+  return idx;
+}
+
+function calendarTabHTML(){
+  if(!ui.calMonth) ui.calMonth=new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  const cal=ui.calMonth;
+  const year=cal.getFullYear(), month=cal.getMonth();
+  const idx=buildSessionCalendar();
+  const planStart=new Date(state.startDate); planStart.setHours(0,0,0,0);
+  const planEnd=new Date(state.raceDate+"T00:00:00");
+  const todayYMD=YMD(new Date());
+
+  // primer día de la cuadrícula: lunes anterior (o igual) al día 1 del mes
+  const firstOfMonth=new Date(year,month,1);
+  const firstWeekday=firstOfMonth.getDay(); // 0=Dom..6=Sáb
+  const gridStartOffset = firstWeekday===0?-6:1-firstWeekday;
+  const gridStart=new Date(firstOfMonth); gridStart.setDate(1+gridStartOffset);
+
+  const monthNames=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+
+  let html='<div class="calNav">' +
+    '<button class="navBtn" data-calmonth="-1">←</button>' +
+    '<div class="calTitle">'+monthNames[month].toUpperCase()+' '+year+'</div>' +
+    '<button class="navBtn" data-calmonth="1">→</button>' +
+  '</div>';
+  html+='<button class="todayBtn" data-calmonth="0">Ir al mes actual</button>';
+
+  html+='<div class="calGrid">';
+  ["L","M","X","J","V","S","D"].forEach(d=>html+='<div class="calDow">'+d+'</div>');
+  for(let i=0;i<42;i++){
+    const d=new Date(gridStart); d.setDate(gridStart.getDate()+i);
+    const ymd=YMD(d);
+    const inMonth=d.getMonth()===month;
+    const isToday=ymd===todayYMD;
+    const outOfPlan = d<planStart || d>planEnd;
+    const entries=idx[ymd]||[];
+    let cell='<div class="calCell'+(inMonth?'':' calOut')+(isToday?' calToday':'')+(outOfPlan?' calNoplan':'')+'">';
+    cell+='<div class="calDayNum">'+d.getDate()+'</div>';
+    entries.forEach(e=>{
+      const log=state.logs["w"+e.week+"-"+e.sess.id];
+      const isRace=e.sess.tipo==="CARRERA";
+      const color=CAL_COLOR[e.sess.tipo]||"var(--mut2)";
+      const icon=CAL_ICON[e.sess.tipo]||"🏃";
+      const cls="calPill"+(log?" calDone":"")+(isRace?" calRace":"");
+      cell+='<div class="'+cls+'" style="--pillColor:'+color+'" data-week="'+e.week+'" title="'+esc(e.sess.titulo)+'">'+icon+' '+esc(e.sess.titulo.length>14?e.sess.titulo.slice(0,13)+"…":e.sess.titulo)+(log?' ✓':'')+'</div>';
+    });
+    cell+='</div>';
+    html+=cell;
+  }
+  html+='</div>';
+
+  html+='<div class="calLegend">';
+  [["SERIES/TEMPO/RITMO","#FC5E15"],["TIRADA LARGA","#0F1525"],["RODAJE","#9A927F"],["GIMNASIO/ACTIVACIÓN","#C8901F"]].forEach(([l,c])=>{
+    html+='<span class="calLegendItem"><span class="calDot" style="background:'+c+'"></span>'+l+'</span>';
+  });
+  html+='</div>';
+
+  return html;
+}
 let cloudSaveTimer=null;
 function save(){
   storage.set(STORAGE_KEY, JSON.stringify(state));
@@ -1006,6 +1236,8 @@ function createPlan(){
   const ev=o.event;
   const evCfg=EVENTS[ev]||EVENTS.hm;
   if(!o.raceDate){ showToast("Indica la fecha de la prueba.", true); return; }
+  const trainingDays=(o.trainingDays||[]).slice();
+  if(trainingDays.length<3 || trainingDays.length>6){ showToast("Elige entre 3 y 6 días de entrenamiento.", true); return; }
   const totalWeeks=weeksUntil(o.raceDate);
   if(totalWeeks < evCfg.minW){ showToast("Esa fecha está muy cerca para un "+evCfg.label+" ("+totalWeeks+" sem.). Mínimo recomendado: "+evCfg.minW+" semanas.", true); return; }
   let cappedWeeks=totalWeeks;
@@ -1032,11 +1264,11 @@ function createPlan(){
   state={
     startDate:new Date().toISOString(),
     event:ev, totalWeeks:cappedWeeks, raceDate:o.raceDate, requestedWeeks:totalWeeks,
-    profile:{runDays:o.runDays, gymDays:o.gymDays, age, height, weight},
+    profile:{runDays:trainingDays.length, gymDays:o.gymDays, age, height, weight, trainingDays},
     current10k:c10, currentHM:cHM, target10k:t10, goalHM:tHM, gap,
     initialPace:curEv, fitnessPace:curEv, goalPace:goalEv,
     history:[{date:new Date().toISOString(), pace:curEv, note:"Punto de partida"}],
-    logs:{}, hardStreak:0, volumeAdj:{repsDelta:0,recoveryMult:1,reason:"hold"}, overrides:{},
+    logs:{}, hardStreak:0, volumeAdj:{repsDelta:0,recoveryMult:1,reason:"hold"}, overrides:{}, weekAdj:{active:false,reason:null,since:null,postponedLong:false},
   };
   save(); ui.viewWeek=1; ui.tab="resumen"; ui.ob=null;
   render();
@@ -1119,6 +1351,28 @@ function logSession(weekN, sess, paceStr, rpe, note, repsDone){
     fb.push("Tu carga esta semana ya supera lo previsto ("+Math.round(curWk.doneMin)+" de "+Math.round(curWk.plannedMin)+" min planeados). Vigila la fatiga en los próximos días.");
   }
 
+  // --- ajuste semanal: activación/desactivación según fatiga sostenida ---
+  if(!state.weekAdj) state.weekAdj={active:false, reason:null, since:null, postponedLong:false};
+  const ac=acwr(hist);
+  const overloaded = state.hardStreak>=3 || (ac.ratio!=null && ac.ratio>1.3);
+  if(!state.weekAdj.active && overloaded){
+    state.weekAdj={active:true, reason: state.hardStreak>=3?"hardStreak":"acwr", since:hist.curWeek, postponedLong:false};
+    fb.push("Llevas varias sesiones acumulando fatiga"+(ac.ratio!=null&&ac.ratio>1.3?" y tu carga aguda supera bastante a la habitual":"")+": reduzco el volumen de rodajes y tirada larga un 15% durante esta semana y la próxima, hasta que recuperes ritmo.");
+    // si la tirada larga de esta semana aún no se ha hecho, se pospone para no sumar más carga ahora
+    const longSess=hist.weeks[hist.curWeek] && hist.weeks[hist.curWeek].sessions.find(s=>s.tipo==="LARGA" && !state.logs["w"+hist.curWeek+"-"+s.id]);
+    if(longSess && hist.curWeek<state.totalWeeks){
+      postponeSession(hist.curWeek, longSess);
+      state.weekAdj.postponedLong=true;
+      fb.push("También he movido la tirada larga de esta semana a la siguiente, para dar margen a recuperar.");
+    }
+  } else if(state.weekAdj.active && !overloaded && sess.quality && rpe<=6 && (repsDone==null || (mwb && repsDone>=mwb.reps))){
+    // dos señales seguidas de "todo bien" desactivan el ajuste (hardStreak ya se resetea a 0 arriba si rpe<9)
+    if(state.hardStreak===0){
+      state.weekAdj={active:false, reason:null, since:null, postponedLong:false};
+      fb.push("Buenas señales en las últimas sesiones: el plan vuelve a su volumen habitual.");
+    }
+  }
+
   if(fb.length) msg = fb.join(" ") + " " + msg;
   ui.modal=null; render(); showToast(msg);
 }
@@ -1188,15 +1442,36 @@ function deleteSession(weekN, sess){
 }
 
 // deshacer una posposición o eliminación
+// deshacer una posposición o eliminación, incluyendo la compensación asociada
+// (si al posponer una sesión de calidad se eliminó otra para compensar, se restaura también)
 function restoreSession(weekN, sess){
   if(!state.overrides) return;
   const key="w"+weekN+"-"+sess.id;
-  if(state.overrides[key]==="postponed"){
-    const nextKey="incoming-"+(weekN+1);
-    if(state.overrides[nextKey]) state.overrides[nextKey]=state.overrides[nextKey].filter(s=>s.id!==sess.id+"-pp"+weekN);
+  const st=state.overrides[key];
+  if(!st) return;
+  if(st==="postponed"){
+    const nextWeek=weekN+1;
+    const nextKey="incoming-"+nextWeek;
+    const movedId=sess.id+"-pp"+weekN;
+    if(state.overrides[nextKey]){
+      // si esa sesión movida provocó la eliminación de otra (compensación), la restauramos
+      state.overrides[nextKey].forEach(()=>{});
+      for(const k in state.overrides){
+        if(k.startsWith("w"+nextWeek+"-") && state.overrides[k]==="deleted"){
+          // heurística: si solo hay una sesión "incoming" para esta semana siguiente
+          // y coincide con la que estamos deshaciendo, asumimos que esa eliminación
+          // fue su compensación y la revertimos también
+          const onlyThisIncoming=state.overrides[nextKey].length===1 && state.overrides[nextKey][0].id===movedId;
+          if(onlyThisIncoming) delete state.overrides[k];
+        }
+      }
+      state.overrides[nextKey]=state.overrides[nextKey].filter(s=>s.id!==movedId);
+      if(state.overrides[nextKey].length===0) delete state.overrides[nextKey];
+    }
   }
   delete state.overrides[key];
   save(); render();
+  showToast("Sesión restaurada en la semana "+weekN+".");
 }
 
 function resetPlan(){ storage.del(STORAGE_KEY); state=null; ui.tab="resumen"; ui.modal=null; ui.ob=defaultOb(); render(); }
@@ -1215,6 +1490,7 @@ function render(){
 
   let body="";
   if(ui.tab==="resumen")  body=dashboardTabHTML();
+  if(ui.tab==="calendario") body=calendarTabHTML();
   if(ui.tab==="semana")   body=weekTabHTML(P,curWeek);
   if(ui.tab==="progreso") body=progressTabHTML();
   if(ui.tab==="volumen")  body=volumeTabHTML();
@@ -1234,14 +1510,38 @@ function render(){
       '</div>' +
       '<div class="progressRow"><div class="progressTrack"><div class="progressFill" style="width:'+progress+'%"></div><div class="progressGoal"></div></div>' +
       '<div class="progressTxt">'+progress+'% hacia '+fmtPace(state.goalPace)+' · carrera ≈ '+raceDate.toLocaleDateString("es-ES",{day:"numeric",month:"short",year:"numeric"})+'</div></div></header>' +
-      '<nav class="tabs">'+tabBtn("resumen","Resumen")+tabBtn("semana","Entrenamientos")+tabBtn("progreso","Progreso")+tabBtn("volumen","Volumen")+tabBtn("ritmos","Mis ritmos")+tabBtn("ajustes","Ajustes")+'</nav>' +
+      '<nav class="tabs">'+tabBtn("resumen","Resumen")+tabBtn("calendario","Calendario")+tabBtn("semana","Entrenamientos")+tabBtn("progreso","Progreso")+tabBtn("volumen","Volumen")+tabBtn("ritmos","Mis ritmos")+tabBtn("ajustes","Ajustes")+'</nav>' +
       '<main>'+body+'</main>' +
     '</div>' +
-    (ui.modal?modalHTML(P):"");
+    bottomNavHTML() +
+    (ui.modal?modalHTML(P):"") +
+    (ui.tracker?trackerHTML(P):"");
   wire();
 }
 
 const tabBtn=(k,l)=>'<button class="tab'+(ui.tab===k?" on":"")+'" data-tab="'+k+'">'+l+'</button>';
+
+// navegación inferior para móvil: 4 accesos directos + "Más" con el resto de pestañas
+const BOTTOM_TABS=[["resumen","🏠","Hoy"],["calendario","📅","Calendario"],["semana","🏃","Plan"],["progreso","📊","Progreso"]];
+const MORE_TABS=[["volumen","Volumen"],["ritmos","Mis ritmos"],["ajustes","Ajustes"]];
+function bottomNavHTML(){
+  const moreActive=MORE_TABS.some(([k])=>k===ui.tab);
+  let html='<nav class="bottomNav">';
+  BOTTOM_TABS.forEach(([k,icon,label])=>{
+    html+='<button class="bnItem'+(ui.tab===k?" on":"")+'" data-tab="'+k+'"><span class="bnIcon">'+icon+'</span><span class="bnLabel">'+label+'</span></button>';
+  });
+  html+='<button class="bnItem'+(moreActive||ui.moreMenuOpen?" on":"")+'" data-more-toggle="1"><span class="bnIcon">⋯</span><span class="bnLabel">Más</span></button>';
+  html+='</nav>';
+  if(ui.moreMenuOpen){
+    html+='<div class="moreMenuOverlay" data-more-close="1"><div class="moreMenu" data-stop="1">';
+    MORE_TABS.forEach(([k,label])=>{
+      html+='<button class="moreMenuItem'+(ui.tab===k?" on":"")+'" data-tab="'+k+'" data-more-close="1">'+label+'</button>';
+    });
+    html+='</div></div>';
+  }
+  return html;
+}
+
 
 // desglose visual de bloques: warmup · 6×1000 @ ritmo (rec. 75″) · cooldown
 function blockStructureHTML(blocks, P){
@@ -1308,6 +1608,23 @@ function weekTabHTML(P, curWeek){
         '</div></div>';
     }
   });
+
+  // sesiones ocultas esta semana (pospuestas o eliminadas): tarjeta reducida con "Deshacer"
+  if(state.overrides){
+    const raw=buildWeekRaw(w, state.profile.runDays, state.totalWeeks, state.event, state.goalPace);
+    raw.forEach(sess=>{
+      const ovKey="w"+w+"-"+sess.id;
+      const st=state.overrides[ovKey];
+      if(st!=="postponed" && st!=="deleted") return;
+      const icon=ICONS[sess.tipo]||"🏃";
+      const label=st==="postponed" ? "movida a la semana "+(w+1) : "eliminada";
+      html+='<div class="card ghostCard">' +
+        '<div class="cardHead"><span class="cardIcon">'+icon+'</span><div class="cardType">'+sess.tipo+' · '+label.toUpperCase()+'</div></div>' +
+        '<div class="cardTitle" style="text-decoration:line-through;opacity:.6">'+esc(sess.titulo)+'</div>' +
+        '<div class="cardFoot"><button class="ghostBtn small" data-undo-week="'+w+'" data-undo-id="'+sess.id+'">↺ Deshacer</button></div>' +
+      '</div>';
+    });
+  }
   html+='</div>';
   return html;
 }
@@ -1316,6 +1633,105 @@ function pacesTabHTML(P){
   let html='<div class="paceGrid">';
   for(const k in P) html+='<div class="paceCard"><div class="paceCardLbl">'+P[k].label+'</div><div class="paceCardVal">'+fmtPace(P[k].v)+'<span class="paceCardUnit">/km</span></div></div>';
   html+='<p class="note">Las series rápidas se calibran con la diferencia entre tu 10K y tu media ('+state.gap+' s/km). Todos los ritmos se recalculan cuando registras una sesión de calidad; los rodajes suaves no los modifican.</p></div>';
+
+  html+=calcEquivalentsHTML();
+  html+=calcHRZonesHTML();
+  return html;
+}
+
+/* ---------- calculadora de equivalencias de ritmo (Riegel) ---------- */
+function calcEquivalentsHTML(){
+  const c=ui.calc;
+  const dists={"5":"5 km","10":"10 km","21.0975":"Media maratón","42.195":"Maratón"};
+  let selDist='<div class="selRow">';
+  for(const d in dists) selDist+='<button class="selBtn'+(c.dist===d?" on":"")+'" data-calcdist="'+d+'">'+dists[d]+'</button>';
+  selDist+='</div>';
+
+  let html='<div class="card" style="margin-top:18px">';
+  html+='<div class="cardTitle">Calculadora de equivalencias</div>';
+  html+='<div class="cardDetail">Introduce una marca reciente y calcula tu ritmo equivalente en otras distancias y para tus entrenamientos.</div>';
+  html+='<label class="lbl">Distancia de la marca</label>'+selDist;
+  html+='<label class="lbl">Tiempo conseguido</label>';
+  html+='<input class="field" id="calc-time" inputmode="text" autocomplete="off" placeholder="ej. 45:30 o 1:35:00" value="'+esc(c.time)+'">';
+  html+='<button class="cta" data-calc-equiv="1">Calcular equivalencias</button>';
+
+  const distVal=parseFloat(c.dist);
+  const timeVal=parseTimeStr(c.time);
+  if(c.time && !timeVal){
+    html+='<div class="trackerWarn">Formato no válido. Usa mm:ss (ej. 45:30) o h:mm:ss (ej. 1:35:00).</div>';
+  } else if(timeVal){
+    const basePace=timeVal/distVal; // s/km
+    html+='<div class="logLine">Ritmo de la marca: <b>'+fmtPace(basePace)+'</b> /km</div>';
+
+    html+='<div class="statChips" style="margin-top:10px;flex-wrap:wrap">';
+    Object.entries(dists).forEach(([d,label])=>{
+      const dd=parseFloat(d);
+      const t = basePace*distVal * Math.pow(dd/distVal,1.06);
+      html+='<div class="statChip"><span class="statChipLbl">'+label+'</span><span class="statChipVal">'+fmtTime(t)+'</span></div>';
+    });
+    html+='</div>';
+
+    // ritmos de entrenamiento derivados de esta marca, usando la misma lógica que paces()
+    const trainingP=paces(basePace, state.gap||9, "hm");
+    html+='<div class="cardTitle" style="margin-top:14px;font-size:var(--fs-md)">Ritmos de entrenamiento equivalentes</div>';
+    html+='<div class="paceGrid" style="margin-top:8px">';
+    ["short","vo2","tempo","mara","long","easy"].forEach(k=>{
+      if(!trainingP[k]) return;
+      html+='<div class="paceCard"><div class="paceCardLbl">'+trainingP[k].label+'</div><div class="paceCardVal">'+fmtPace(trainingP[k].v)+'<span class="paceCardUnit">/km</span></div></div>';
+    });
+    html+='</div>';
+    html+='<p class="note">Equivalencias calculadas con la fórmula de Riegel (exponente 1.06), igual que las predicciones del Resumen. Son una referencia: cuanto más distinta sea la distancia de la marca a la que quieres estimar, menos preciso es el resultado.</p>';
+  }
+  html+='</div>';
+  return html;
+}
+
+/* ---------- calculadora de zonas de frecuencia cardíaca ---------- */
+function calcHRZonesHTML(){
+  const c=ui.calc;
+  const age=parseInt(c.age), fcMaxInput=parseInt(c.fcMax), fcRest=parseInt(c.fcRest);
+  const fcMax = fcMaxInput>0 ? fcMaxInput : (age>0 ? 220-age : null);
+
+  let html='<div class="card" style="margin-top:14px">';
+  html+='<div class="cardTitle">Zonas de frecuencia cardíaca</div>';
+  html+='<div class="cardDetail">Indica tu FC máxima si la conoces (de una prueba de esfuerzo o un test real), o tu edad para una estimación aproximada (220 - edad). Si añades tu FC en reposo, se usa el método de Karvonen, más preciso.</div>';
+  html+='<div class="grid3">' +
+    '<div><label class="lbl">Edad</label><input class="field" id="calc-age" inputmode="numeric" placeholder="40" value="'+esc(c.age)+'"></div>' +
+    '<div><label class="lbl">FC máxima (opcional)</label><input class="field" id="calc-fcmax" inputmode="numeric" placeholder="ej. 185" value="'+esc(c.fcMax)+'"></div>' +
+    '<div><label class="lbl">FC en reposo (opcional)</label><input class="field" id="calc-fcrest" inputmode="numeric" placeholder="ej. 55" value="'+esc(c.fcRest)+'"></div>' +
+  '</div>';
+  html+='<button class="cta" data-calc-hr="1">Calcular zonas</button>';
+
+  if(fcMax){
+    if(!fcMaxInput && age>0) html+='<div class="note" style="margin-top:0">FC máxima estimada por edad: <b>'+fcMax+'</b> ppm (220 − '+age+'). Es una fórmula genérica con bastante variabilidad individual; si conoces tu FC máx real, indícala arriba para mayor precisión.</div>';
+    const zones=[
+      {n:1, label:"Z1 · Recuperación", lo:0.50, hi:0.60},
+      {n:2, label:"Z2 · Aeróbico ligero", lo:0.60, hi:0.70},
+      {n:3, label:"Z3 · Aeróbico (umbral)", lo:0.70, hi:0.80},
+      {n:4, label:"Z4 · Umbral / tempo", lo:0.80, hi:0.90},
+      {n:5, label:"Z5 · Máximo / VO2max", lo:0.90, hi:1.00},
+    ];
+    const useKarvonen = fcRest>0 && fcRest<fcMax;
+    html+='<div class="sessionList" style="margin-top:10px">';
+    zones.forEach(z=>{
+      let lo,hi;
+      if(useKarvonen){
+        const reserve=fcMax-fcRest;
+        lo=Math.round(fcRest+reserve*z.lo);
+        hi=Math.round(fcRest+reserve*z.hi);
+      } else {
+        lo=Math.round(fcMax*z.lo);
+        hi=Math.round(fcMax*z.hi);
+      }
+      html+='<div class="card" style="padding:12px 16px"><div class="cardFoot" style="justify-content:space-between;align-items:center">' +
+        '<span style="font-weight:700">'+z.label+'</span>' +
+        '<span style="font-family:var(--mono);font-weight:700">'+lo+'–'+hi+' ppm</span>' +
+      '</div></div>';
+    });
+    html+='</div>';
+    html+='<p class="note">'+(useKarvonen?"Calculado con el método de Karvonen (% de la reserva de frecuencia cardíaca: FCmáx − FCreposo).":"Calculado como % directo de tu FC máxima.")+' Estas zonas son orientativas: úsalas junto con tu percepción de esfuerzo (RPE), no como única referencia.</p>';
+  }
+  html+='</div>';
   return html;
 }
 
@@ -1329,7 +1745,10 @@ function settingsTabHTML(){
     '<div class="settingsRow"><span>Fecha de la prueba</span><b>'+new Date(state.raceDate+"T00:00:00").toLocaleDateString("es-ES")+'</b></div>' +
     '<div class="settingsRow"><span>Duración del plan</span><b>'+state.totalWeeks+' semanas</b></div>' +
     '<div class="settingsRow"><span>Inicio</span><b>'+new Date(state.startDate).toLocaleDateString("es-ES")+'</b></div>' +
-    '<div class="settingsRow"><span>Días de carrera / gimnasio</span><b>'+pr.runDays+' / '+pr.gymDays+'</b></div>' +
+    '<div class="settingsRow"><span>Días de gimnasio</span><b>'+pr.gymDays+'</b></div>' +
+    '<div class="settingsRow" style="flex-direction:column;align-items:flex-start;gap:8px"><span>Días de entrenamiento</span>' +
+      '<div class="selRow">'+WEEK_ORDER.map(d=>'<button class="selBtn'+((pr.trainingDays||[]).includes(d)?" on":"")+'" data-setday="'+d+'" title="'+DAY_NAMES_FULL[d]+'">'+DAY_LABELS[d]+'</button>').join('')+'</div>' +
+    '</div>' +
     '<div class="settingsRow"><span>Sesiones registradas</span><b>'+Object.keys(state.logs).length+'</b></div>' +
     '<div class="settingsHd">Ritmos</div>' +
     '<div class="settingsRow"><span>10K · actual → objetivo</span><b>'+fmtPace(state.current10k)+' → '+fmtPace(state.target10k)+' /km</b></div>' +
@@ -1388,6 +1807,120 @@ function buildHistory(){
 }
 
 // ACWR: carga aguda (última semana completa) / carga crónica (media de las 4 anteriores)
+/* ============================================================
+   LOGROS / INSIGNIAS
+   ============================================================ */
+const PACE_KEY_LABELS={short:"series cortas (≈5K)",vo2:"series (≈10K)",tempo:"umbral/tempo",race:"ritmo competición",mara:"rodaje activo",long:"tirada larga",easy:"rodaje suave"};
+
+function computeAchievements(history){
+  const {weeks,curWeek,P}=history;
+  const ach=[];
+
+  // --- Racha de sesiones (reutiliza streak()) ---
+  const st=streak(history);
+  [7,14,30].forEach(n=>{
+    ach.push({
+      id:"streak"+n, icon:"🔥",
+      title: n+" sesiones seguidas",
+      desc: "Encadena "+n+" sesiones registradas sin huecos.",
+      done: st>=n,
+      progress: Math.min(st,n), goal:n,
+    });
+  });
+
+  // --- Consistencia: 4 semanas seguidas con >=90% de cumplimiento ---
+  let consistentStreak=0, maxConsistentStreak=0;
+  for(let w=1;w<=curWeek;w++){
+    const wk=weeks[w]; if(!wk || wk.plannedCount===0) continue;
+    const pct=wk.doneCount/wk.plannedCount;
+    if(pct>=0.9){ consistentStreak++; maxConsistentStreak=Math.max(maxConsistentStreak,consistentStreak); }
+    else consistentStreak=0;
+  }
+  ach.push({
+    id:"consistency4", icon:"📈",
+    title:"4 semanas al 90%+",
+    desc:"Completa al menos el 90% de las sesiones durante 4 semanas consecutivas.",
+    done: maxConsistentStreak>=4,
+    progress: Math.min(maxConsistentStreak,4), goal:4,
+  });
+
+  // --- Tirada larga: primera vez que se alcanza cada distancia ---
+  let maxLongKm=0;
+  for(let w=1;w<=curWeek;w++){
+    const wk=weeks[w]; if(!wk) continue;
+    wk.sessions.forEach(sess=>{
+      if(sess.gym || sess.tipo!=="LARGA") return;
+      const log=state.logs["w"+w+"-"+sess.id]; if(!log) return;
+      const plannedMin=estMinutes(sess,P);
+      const km=plannedMin/(log.pace/60);
+      if(km>maxLongKm) maxLongKm=km;
+    });
+  }
+  [15,18,21].forEach(km=>{
+    ach.push({
+      id:"long"+km, icon:"🛣️",
+      title:"Tirada larga de "+km+" km",
+      desc:"Completa una tirada larga de al menos "+km+" km.",
+      done: maxLongKm>=km,
+      progress: Math.min(maxLongKm,km), goal:km, unit:"km",
+    });
+  });
+
+  // --- Progreso del plan ---
+  const totalSessions=(()=>{ let n=0; for(let w=1;w<=state.totalWeeks;w++) n+=buildWeek(w,state.profile.runDays,state.profile.gymDays,state.totalWeeks,state.event,state.goalPace).filter(s=>!s.gym).length; return n; })();
+  let doneSessions=0;
+  for(let w=1;w<=curWeek;w++){ const wk=weeks[w]; if(wk) doneSessions+=wk.doneCount; }
+  const planPct = totalSessions>0 ? (doneSessions/totalSessions)*100 : 0;
+  [25,50,75,100].forEach(p=>{
+    ach.push({
+      id:"plan"+p, icon: p===100?"🏆":"🎯",
+      title: p===100?"Plan completado":p+"% del plan",
+      desc: p===100?"Termina todas las sesiones del plan.":"Completa el "+p+"% de las sesiones del plan.",
+      done: planPct>=p,
+      progress: Math.min(planPct,p), goal:p, unit:"%",
+    });
+  });
+
+  // --- Mejora de forma respecto al ritmo inicial ---
+  const improved = state.fitnessPace < state.initialPace;
+  ach.push({
+    id:"fitness_improved", icon:"⚡",
+    title:"Primera mejora de forma",
+    desc:"Consigue que tu ritmo de fitness mejore respecto al inicial ("+fmtPace(state.initialPace)+" /km).",
+    done: improved,
+    progress: improved?1:0, goal:1,
+  });
+
+  // --- PRs de ritmo por tipo de bloque ---
+  const bestByKey={};
+  for(let w=1;w<=curWeek;w++){
+    const wk=weeks[w]; if(!wk) continue;
+    wk.sessions.forEach(sess=>{
+      if(sess.gym) return;
+      const log=state.logs["w"+w+"-"+sess.id]; if(!log) return;
+      const mwb=sess.blocks?mainWorkBlock(sess.blocks):null;
+      const key=mwb?mwb.paceKey:sess.paceKey;
+      if(key==="easy"||key==="mara") return; // PRs solo en esfuerzos de calidad/tirada larga
+      if(!bestByKey[key] || log.pace<bestByKey[key].pace) bestByKey[key]={pace:log.pace, week:w};
+    });
+  }
+  Object.keys(PACE_KEY_LABELS).forEach(key=>{
+    if(key==="easy"||key==="mara") return;
+    const best=bestByKey[key];
+    ach.push({
+      id:"pr_"+key, icon:"🥇",
+      title:"Mejor marca: "+PACE_KEY_LABELS[key],
+      desc: best ? "Tu mejor ritmo registrado en "+PACE_KEY_LABELS[key]+" es "+fmtPace(best.pace)+" /km (semana "+best.week+")." : "Registra una sesión de "+PACE_KEY_LABELS[key]+" para empezar a guardar tu mejor marca.",
+      done: !!best,
+      progress: best?1:0, goal:1,
+      value: best?fmtPace(best.pace)+" /km":null,
+    });
+  });
+
+  return ach;
+}
+
+
 function acwr(history){
   const {weeks,curWeek}=history;
   const acute=weeks[curWeek-1]?weeks[curWeek-1].doneMin:(weeks[curWeek]?weeks[curWeek].doneMin:0);
@@ -1439,6 +1972,77 @@ function predictTimes(){
   return out;
 }
 
+// próxima sesión sin registrar (prioriza carrera sobre gimnasio), buscando primero
+// en la semana actual y, si está completa, en las siguientes
+/* ============================================================
+   COACH POR REGLAS: respuestas rápidas a "¿cómo te encuentras?"
+   ============================================================ */
+
+// "Piernas cargadas": activa el modo recuperación manualmente, sin esperar
+// a que el RPE de una sesión lo detecte. Reutiliza el mismo mecanismo que
+// el ajuste automático (recorte 15% + posible posposición de la tirada larga).
+function coachHeavyLegs(){
+  const curWeek=currentWeekOf(state.startDate,state.totalWeeks);
+  if(state.weekAdj && state.weekAdj.active){
+    showToast("Ya tenías el modo recuperación activo: sigo con rodajes y tirada larga reducidos un 15% por ahora.");
+    return;
+  }
+  if(!state.overrides) state.overrides={};
+  state.weekAdj={active:true, reason:"manual", since:curWeek, postponedLong:false};
+  let msg="Entendido, piernas cargadas. Reduzco rodajes y tirada larga un 15% esta semana y la próxima.";
+  const hist=buildHistory();
+  const longSess=hist.weeks[curWeek] && hist.weeks[curWeek].sessions.find(s=>s.tipo==="LARGA" && !state.logs["w"+curWeek+"-"+s.id]);
+  if(longSess && curWeek<state.totalWeeks){
+    postponeSession(curWeek, longSess);
+    state.weekAdj.postponedLong=true;
+    msg+=" También muevo tu tirada larga de esta semana a la siguiente, para dar margen a recuperar.";
+  }
+  save(); render(); showToast(msg);
+}
+
+// "No entrené ayer": pospone la sesión que la app considera "de hoy"
+// (reutiliza exactamente la misma lógica de posponer que los botones de cada tarjeta).
+function coachMissedYesterday(){
+  const curWeek=currentWeekOf(state.startDate,state.totalWeeks);
+  const hist=buildHistory();
+  const wk=hist.weeks[curWeek]||{sessions:[]};
+  const {sess:today, week:todayWeek}=findTodaySession(curWeek, wk);
+  if(!today){ showToast("No encuentro ninguna sesión pendiente que mover. Vas al día."); return; }
+  if(today.gym){ showToast("La próxima sesión pendiente es de gimnasio (\""+today.titulo+"\"). Puedes marcarla como hecha o eliminarla desde Entrenamientos si prefieres saltártela."); return; }
+  postponeSession(todayWeek, today);
+}
+
+// "Hoy me encuentro genial": si había un modo recuperación activo, ofrece
+// desactivarlo antes de tiempo; si no, solo da feedback positivo.
+function coachFeelingGreat(){
+  if(state.weekAdj && state.weekAdj.active){
+    if(confirm("Tenías el modo recuperación activo (volumen reducido). ¿Quieres volver ya al volumen normal?")){
+      state.weekAdj={active:false, reason:null, since:null, postponedLong:false};
+      save(); render();
+      showToast("¡Genial! Vuelves al volumen habitual del plan desde esta semana.");
+      return;
+    }
+    showToast("Vale, lo dejamos como está por ahora. Si sigues bien un par de sesiones más, se desactivará solo.");
+    return;
+  }
+  showToast("¡Genial! Aprovecha la frescura, pero no te dejes llevar más allá del ritmo previsto de hoy: la mejora viene de acumular, no de un solo día.");
+}
+
+function findTodaySession(curWeek, curWeekHist){
+  const pending=curWeekHist.sessions.filter(s=>!state.logs["w"+curWeek+"-"+s.id]);
+  let today=pending.find(s=>!s.gym) || pending[0] || null;
+  let week=curWeek;
+  if(!today){
+    for(let w=curWeek+1; w<=state.totalWeeks; w++){
+      const ss=buildWeek(w,state.profile.runDays,state.profile.gymDays,state.totalWeeks,state.event,state.goalPace);
+      const pend=ss.filter(s=>!state.logs["w"+w+"-"+s.id]);
+      const cand=pend.find(s=>!s.gym) || pend[0] || null;
+      if(cand){ today=cand; week=w; break; }
+    }
+  }
+  return {sess:today, week};
+}
+
 function dashboardTabHTML(){
   const history=buildHistory();
   const {weeks,curWeek,P}=history;
@@ -1486,17 +2090,17 @@ function dashboardTabHTML(){
 
   const stat=(lbl,val,unit,extra)=>'<div class="stat"><div class="statLbl">'+lbl+'</div><div class="statVal">'+val+'<span class="statUnit">'+unit+'</span></div>'+(extra?'<div class="statExtra">'+extra+'</div>':'')+'</div>';
 
-  // próxima sesión sin registrar de la semana actual (prioriza carrera sobre gimnasio)
-  const pending=wk.sessions.filter(s=>!state.logs["w"+curWeek+"-"+s.id]);
-  const today=pending.find(s=>!s.gym) || pending[0] || null;
+  // próxima sesión sin registrar: la de "Hoy" en el dashboard
+  const {sess:today, week:todayWeek} = findTodaySession(curWeek, wk);
   const raceDateForToday=new Date(state.raceDate+"T00:00:00");
   const daysToRaceToday=Math.max(0,Math.ceil((raceDateForToday.getTime()-Date.now())/86400000));
+  const todayLabel = todayWeek===curWeek ? "HOY" : "PRÓXIMA SESIÓN (S"+todayWeek+")";
 
   let html='';
   if(today){
     const isRaceToday=today.tipo==="CARRERA";
     if(today.gym){
-      html+='<div class="todayCard"><div class="todayLbl">HOY</div>' +
+      html+='<div class="todayCard"><div class="todayLbl">'+todayLabel+'</div>' +
         '<div class="todayTitle">'+esc(today.titulo)+'</div>' +
         '<div class="todayDetail">'+esc(today.detalle)+'</div>' +
         '<div class="todayMetaRow"><span>🏋️ Sesión de fuerza</span><span>Faltan '+daysToRaceToday+' días para la carrera</span></div>' +
@@ -1506,7 +2110,7 @@ function dashboardTabHTML(){
       const objPace=mwb?P[mwb.paceKey].v:P[today.paceKey].v;
       const objLbl=mwb?P[mwb.paceKey].label:P[today.paceKey].label;
       const mins=estMinutes(today,P);
-      html+='<div class="todayCard'+(isRaceToday?" todayRace":"")+'"><div class="todayLbl">'+(isRaceToday?"🏁 ES EL DÍA":"HOY")+'</div>' +
+      html+='<div class="todayCard'+(isRaceToday?" todayRace":"")+'"><div class="todayLbl">'+(isRaceToday?"🏁 ES EL DÍA":todayLabel)+'</div>' +
         '<div class="todayTitle">'+esc(today.titulo)+'</div>' +
         '<div class="todayDetail">'+esc(today.detalle)+'</div>' +
         '<div class="todayMetaRow">' +
@@ -1516,8 +2120,55 @@ function dashboardTabHTML(){
         '</div>' +
       '</div>';
     }
+  } else {
+    html+='<div class="todayCard"><div class="todayLbl">AL DÍA</div>' +
+      '<div class="todayTitle">¡Todo registrado!</div>' +
+      '<div class="todayDetail">No quedan sesiones pendientes en el plan hasta ahora. Vuelve cuando toque tu próximo entrenamiento.</div>' +
+    '</div>';
   }
 
+  html+='<div class="coachRow">' +
+    '<span class="coachLbl">¿Cómo te encuentras?</span>' +
+    '<button class="coachBtn" data-coach="heavy">😣 Piernas cargadas</button>' +
+    '<button class="coachBtn" data-coach="missed">📅 No entrené ayer</button>' +
+    '<button class="coachBtn" data-coach="great">🚀 Hoy genial</button>' +
+  '</div>';
+
+  // --- Logros / insignias ---
+  {
+    const ach=computeAchievements(history);
+    const done=ach.filter(a=>a.done);
+    const pending=ach.filter(a=>!a.done);
+    // ordena los pendientes por cercanía a completarse
+    pending.sort((a,b)=>(b.progress/b.goal)-(a.progress/a.goal));
+    const showAll=ui.showAllAchievements;
+    const visible= showAll ? ach : done.slice(0,3).concat(pending.slice(0,3));
+
+    html+='<div class="achSection">';
+    html+='<div class="achHeader"><span class="achTitle">🏅 Logros</span><span class="achCount">'+done.length+' / '+ach.length+'</span></div>';
+    html+='<div class="achGrid">';
+    visible.forEach(a=>{
+      const pct=Math.round((a.progress/a.goal)*100);
+      html+='<div class="achCard'+(a.done?" achDone":"")+'">' +
+        '<div class="achIcon">'+a.icon+'</div>' +
+        '<div class="achBody">' +
+          '<div class="achCardTitle">'+esc(a.title)+'</div>' +
+          '<div class="achDesc">'+esc(a.desc)+'</div>' +
+          (a.done?'':'<div class="achBar"><div class="achBarFill" style="width:'+pct+'%"></div></div>') +
+          (a.done&&a.value?'<div class="achValue">'+esc(a.value)+'</div>':'') +
+        '</div>' +
+      '</div>';
+    });
+    html+='</div>';
+    html+='<button class="ghostBtn small" style="margin-top:10px" data-toggle-achievements="1">'+(showAll?"Ver menos":"Ver todos los logros")+'</button>';
+    html+='</div>';
+  }
+
+
+  if(state.weekAdj && state.weekAdj.active){
+    const upto=state.weekAdj.since+1;
+    html+='<div class="banner warn">😴 <b>Modo recuperación activo</b> (hasta S'+upto+'): rodajes y tirada larga reducidos un 15%'+(state.weekAdj.postponedLong?', y la tirada larga de la semana '+state.weekAdj.since+' se movió a la siguiente':'')+'. Volverá a la normalidad cuando encadenes un par de sesiones con buena sensación.</div>';
+  }
   if(overload.length){
     overload.forEach(o=>{
       const names=o.incoming.map(s=>'"'+s.titulo+'"').join(' y ');
@@ -1554,6 +2205,44 @@ function dashboardTabHTML(){
   // Progreso del plan
   const pct=Math.round((curWeek/state.totalWeeks)*100);
   html+=stat("Progreso del plan", "S"+curWeek, "/ "+state.totalWeeks, pct+"% completado");
+
+  // Tendencia de forma: compara el fitness actual con el de hace ~4 sesiones de calidad
+  const h=state.history;
+  if(h.length>=2){
+    const lookback=Math.min(4,h.length-1);
+    const prevPace=h[h.length-1-lookback].pace;
+    const curPace=h[h.length-1].pace;
+    const diff=prevPace-curPace; // + = más rápido ahora = mejorando
+    let trendIcon,trendLbl,trendClass;
+    if(diff>=2){ trendIcon="↑"; trendLbl="Mejorando"; trendClass="good"; }
+    else if(diff<=-2){ trendIcon="↓"; trendLbl="Fatigado"; trendClass="warn"; }
+    else { trendIcon="→"; trendLbl="Estable"; trendClass=""; }
+    html+='<div class="stat"><div class="statLbl">Tendencia de forma</div>' +
+      '<div class="statVal">'+trendIcon+'</div>' +
+      '<div class="statExtra'+(trendClass?" "+trendClass:"")+'">'+trendLbl+(Math.abs(diff)>=2?' ('+(diff>0?'-':'+')+Math.abs(Math.round(diff))+' s/km)':'')+'</div>' +
+    '</div>';
+  }
+
+  // Consistencia: % de sesiones registradas vs planificadas en los últimos 30 días,
+  // usando la fecha real de cada sesión según los días de entrenamiento configurados
+  {
+    const now=Date.now();
+    let planned30=0, done30=0;
+    for(let w=1;w<=state.totalWeeks;w++){
+      const ss=buildWeek(w,state.profile.runDays,state.profile.gymDays,state.totalWeeks,state.event,state.goalPace);
+      const runs=ss.filter(s=>!s.gym);
+      runs.forEach((sess,i)=>{
+        const d=dateForSession(w,i);
+        const diffDays=(now-d.getTime())/86400000;
+        if(diffDays>=0 && diffDays<=30){
+          planned30++;
+          if(state.logs["w"+w+"-"+sess.id]) done30++;
+        }
+      });
+    }
+    const pct30 = planned30>0 ? Math.round((done30/planned30)*100) : null;
+    html+=stat("Consistencia (30 días)", pct30!=null?pct30+"%":"—", "", planned30>0?(done30+" de "+planned30+" sesiones"):"Aún sin datos");
+  }
 
   html+='</div>'; // fin dashGrid
 
@@ -1683,6 +2372,198 @@ function volumeTabHTML(){
     '</div>';
 }
 
+/* ============================================================
+   REGISTRO EN DIRECTO (cronómetro + GPS)
+   ============================================================ */
+const EARTH_R=6371000; // metros
+function haversine(a,b){
+  const toRad=x=>x*Math.PI/180;
+  const dLat=toRad(b.lat-a.lat), dLon=toRad(b.lon-a.lon);
+  const s=Math.sin(dLat/2)**2 + Math.cos(toRad(a.lat))*Math.cos(toRad(b.lat))*Math.sin(dLon/2)**2;
+  return 2*EARTH_R*Math.asin(Math.sqrt(s));
+}
+
+function startTracker(sessId, week){
+  ui.tracker={
+    sessId, week, status:"running",
+    startTime:Date.now(), elapsedAtPause:0,
+    points:[], distanceM:0, lastSpeed:0,
+    watchId:null, wakeLock:null, wakeLockState:"pending", gpsError:null, gpsReady:false,
+  };
+  ui.modal=null;
+  if(!("geolocation" in navigator)){
+    ui.tracker.gpsError="Este dispositivo/navegador no soporta geolocalización. Puedes seguir con el cronómetro y meter el ritmo a mano al terminar.";
+  } else {
+    ui.tracker.watchId=navigator.geolocation.watchPosition(onGpsUpdate, onGpsError, {enableHighAccuracy:true, maximumAge:1000, timeout:10000});
+  }
+  requestWakeLock();
+  if(!trackerVisHandler){
+    trackerVisHandler=()=>{
+      if(document.visibilityState==="visible" && ui.tracker && (ui.tracker.status==="running"||ui.tracker.status==="paused")){
+        requestWakeLock();
+      }
+    };
+    document.addEventListener("visibilitychange", trackerVisHandler);
+  }
+  if(!trackerTimer) trackerTimer=setInterval(()=>{ if(ui.tracker&&ui.tracker.status==="running") render(); },1000);
+  render();
+}
+let trackerTimer=null;
+let trackerVisHandler=null;
+// pide (o vuelve a pedir) el bloqueo de pantalla; actualiza ui.tracker.wakeLockState
+// para que la interfaz pueda mostrar si está realmente activo o no
+function requestWakeLock(){
+  if(!ui.tracker) return;
+  if(!("wakeLock" in navigator)){
+    ui.tracker.wakeLockState="unsupported";
+    render();
+    return;
+  }
+  navigator.wakeLock.request("screen").then(wl=>{
+    if(!ui.tracker) { wl.release().catch(()=>{}); return; }
+    ui.tracker.wakeLock=wl;
+    ui.tracker.wakeLockState="active";
+    wl.addEventListener("release", ()=>{
+      if(ui.tracker && ui.tracker.wakeLock===wl){
+        ui.tracker.wakeLock=null;
+        // el navegador libera el wake lock al ocultar la pestaña; visibilitychange lo reintentará
+        if(ui.tracker.status!=="done") ui.tracker.wakeLockState="failed";
+        render();
+      }
+    });
+    render();
+  }).catch(()=>{
+    ui.tracker.wakeLockState="failed";
+    render();
+  });
+}
+function onGpsUpdate(pos){
+  if(!ui.tracker) return;
+  ui.tracker.gpsReady=true; ui.tracker.gpsError=null;
+  const {latitude:lat,longitude:lon,accuracy:acc,speed}=pos.coords;
+  const p={lat,lon,t:(pos.timestamp||Date.now()),acc};
+  // descarta lecturas muy imprecisas (típico: dentro de edificios)
+  if(acc!=null && acc>30){ return; }
+  const pts=ui.tracker.points;
+  if(pts.length>0 && ui.tracker.status==="running"){
+    const d=haversine(pts[pts.length-1],p);
+    // descarta saltos absurdos (ruido de GPS), p.ej. >50m en <1s
+    const dt=(p.t-pts[pts.length-1].t)/1000;
+    if(dt>0 && d/dt<12){ // <12 m/s = 43 km/h, límite generoso para correr
+      ui.tracker.distanceM+=d;
+    }
+  }
+  ui.tracker.lastSpeed = speed!=null && speed>=0 ? speed*3.6 : ui.tracker.lastSpeed; // km/h
+  pts.push(p);
+  render();
+}
+function onGpsError(err){
+  if(!ui.tracker) return;
+  const msgs={1:"Permiso de ubicación denegado. Actívalo en los ajustes del navegador para usar el GPS.",2:"Señal GPS no disponible ahora mismo.",3:"GPS tardando en responder."};
+  ui.tracker.gpsError=msgs[err.code]||"Error de GPS.";
+  render();
+}
+function trackerElapsedMs(){
+  if(!ui.tracker) return 0;
+  if(ui.tracker.status==="running") return ui.tracker.elapsedAtPause + (Date.now()-ui.tracker.startTime);
+  return ui.tracker.elapsedAtPause;
+}
+function pauseTracker(){
+  if(!ui.tracker || ui.tracker.status!=="running") return;
+  ui.tracker.elapsedAtPause=trackerElapsedMs();
+  ui.tracker.status="paused";
+  render();
+}
+function resumeTracker(){
+  if(!ui.tracker || ui.tracker.status!=="paused") return;
+  ui.tracker.status="running";
+  ui.tracker.startTime=Date.now();
+  render();
+}
+function stopTracker(){
+  if(!ui.tracker) return;
+  ui.tracker.elapsedAtPause=trackerElapsedMs();
+  ui.tracker.status="done";
+  if(ui.tracker.watchId!=null) navigator.geolocation.clearWatch(ui.tracker.watchId);
+  if(ui.tracker.wakeLock) ui.tracker.wakeLock.release().catch(()=>{});
+  clearInterval(trackerTimer); trackerTimer=null;
+  render();
+}
+function discardTracker(){
+  if(ui.tracker){
+    if(ui.tracker.watchId!=null) navigator.geolocation.clearWatch(ui.tracker.watchId);
+    if(ui.tracker.wakeLock) ui.tracker.wakeLock.release().catch(()=>{});
+  }
+  clearInterval(trackerTimer); trackerTimer=null;
+  if(trackerVisHandler){ document.removeEventListener("visibilitychange", trackerVisHandler); trackerVisHandler=null; }
+  ui.tracker=null;
+  render();
+}
+// pasa los resultados del tracker al modal de registro y lo cierra
+function applyTrackerToModal(){
+  const t=ui.tracker;
+  const km=t.distanceM/1000;
+  const elapsedMin=trackerElapsedMs()/60000;
+  const paceSecPerKm = km>0.05 ? (elapsedMin*60)/km : null;
+  ui.modal={week:t.week, sessId:t.sessId, pace: paceSecPerKm?fmtPace(paceSecPerKm):null, rpe:null, note:null, repsDone:null};
+  if(trackerVisHandler){ document.removeEventListener("visibilitychange", trackerVisHandler); trackerVisHandler=null; }
+  ui.tracker=null;
+  render();
+}
+
+function fmtClock(ms){
+  const s=Math.floor(ms/1000);
+  const h=Math.floor(s/3600), m=Math.floor((s%3600)/60), ss=s%60;
+  return (h>0?h+":":"")+String(m).padStart(h>0?2:1,"0")+":"+String(ss).padStart(2,"0");
+}
+
+function trackerHTML(P){
+  const t=ui.tracker;
+  const sess=buildWeek(t.week,state.profile.runDays,state.profile.gymDays,state.totalWeeks,state.event,state.goalPace).find(s=>s.id===t.sessId);
+  const elapsed=trackerElapsedMs();
+  const km=t.distanceM/1000;
+  const elapsedMin=elapsed/60000;
+  const avgPace = km>0.05 ? (elapsedMin*60)/km : null;
+  const isDone=t.status==="done";
+
+  let html='<div class="overlay" data-stop="1"><div class="modal trackerModal" data-stop="1">';
+  html+='<div class="cardType">'+(sess?sess.tipo+' · '+esc(sess.titulo):'')+'</div>';
+  html+='<div class="trackerClock">'+fmtClock(elapsed)+'</div>';
+  if(t.status==="paused") html+='<div class="trackerBadge">⏸ Pausado</div>';
+
+  html+='<div class="statChips trackerStats">' +
+    '<div class="statChip"><span class="statChipLbl">Distancia</span><span class="statChipVal">'+km.toFixed(2)+'<span class="statChipUnit">km</span></span></div>' +
+    '<div class="statChip"><span class="statChipLbl">Ritmo medio</span><span class="statChipVal">'+(avgPace?fmtPace(avgPace):'—')+'<span class="statChipUnit">/km</span></span></div>' +
+    '<div class="statChip"><span class="statChipLbl">Velocidad</span><span class="statChipVal">'+(t.lastSpeed?t.lastSpeed.toFixed(1):'0.0')+'<span class="statChipUnit">km/h</span></span></div>' +
+  '</div>';
+
+  if(t.gpsError) html+='<div class="trackerWarn">⚠ '+esc(t.gpsError)+'</div>';
+  else if(!t.gpsReady) html+='<div class="trackerWarn">📡 Buscando señal GPS…</div>';
+
+  if(!isDone){
+    const wl=t.wakeLockState;
+    if(wl==="active") html+='<div class="trackerBadge wlOk">🔒 Pantalla bloqueada activa</div>';
+    else if(wl==="unsupported") html+='<div class="trackerWarn">⚠ Tu navegador no soporta mantener la pantalla encendida automáticamente. Actívalo manualmente en los ajustes del móvil para esta sesión.</div>';
+    else if(wl==="failed") html+='<div class="trackerWarn">⚠ No se pudo mantener la pantalla encendida. Vuelve a esta pestaña si el móvil se bloquea, o actívalo manualmente en ajustes.</div>';
+    html+='<div class="trackerNote">Mantén la pantalla encendida y esta app en primer plano: el GPS se detiene si bloqueas el móvil o cambias de app.</div>';
+    html+='<div class="modalBtns">';
+    if(t.status==="running") html+='<button class="ghostBtn" style="flex:1" data-track-pause="1">⏸ Pausar</button>';
+    else html+='<button class="ghostBtn" style="flex:1" data-track-resume="1">▶ Reanudar</button>';
+    html+='<button class="cta" style="flex:1;margin-top:0;background:var(--ink)" data-track-stop="1">⏹ Detener</button>';
+    html+='</div>';
+    html+='<button class="ghostBtn small" style="margin-top:10px;color:var(--accent-dk)" data-track-discard="1">Descartar grabación</button>';
+  } else {
+    html+='<div class="trackerNote">Sesión detenida. Revisa los datos y pulsa para rellenar el registro — podrás ajustarlos antes de guardar.</div>';
+    html+='<div class="modalBtns">';
+    html+='<button class="ghostBtn" style="flex:1" data-track-discard="1">Descartar</button>';
+    html+='<button class="cta" style="flex:1;margin-top:0" data-track-apply="1">Usar estos datos →</button>';
+    html+='</div>';
+  }
+  html+='</div></div>';
+  return html;
+}
+
+
 function modalHTML(P){
   const w=ui.modal.week;
   const sess=buildWeek(w,state.profile.runDays,state.profile.gymDays,state.totalWeeks,state.event,state.goalPace).find(s=>s.id===ui.modal.sessId);
@@ -1705,6 +2586,7 @@ function modalHTML(P){
   return '<div class="overlay" data-close="1"><div class="modal" data-stop="1">' +
     '<div class="cardType">SEMANA '+w+' · '+sess.tipo+'</div><h3 class="modalTitle">'+esc(sess.titulo)+'</h3>' +
     '<div class="modalTarget">Ritmo previsto'+(mwb?' (bloque principal)':'')+': <b>'+fmtPace(prescribed)+' /km</b></div>' +
+    (existing?'':'<button class="ghostBtn" style="width:100%" data-track-start="1">📍 Grabar en directo (GPS)</button>') +
     repsField +
     '<label class="lbl">Ritmo medio conseguido (/km)</label>' +
     '<input class="field" id="m-pace" inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="'+fmtPace(prescribed)+'" value="'+esc(paceVal)+'" autofocus />' +
@@ -1740,7 +2622,8 @@ function onboardHTML(){
       weeksInfo +
 
       '<div class="fgHd">Disponibilidad semanal</div>' +
-      '<label class="lbl">Días de carrera</label><div class="selRow">'+sel("runDays",3,"3")+sel("runDays",4,"4")+sel("runDays",5,"5")+sel("runDays",6,"6")+'</div>' +
+      '<label class="lbl">Días de entrenamiento (elige 3 a 6)</label><div class="selRow">'+WEEK_ORDER.map(d=>dayToggle(o,d)).join('')+'</div>' +
+      '<div class="note">El primer día marcado de la semana llevará la sesión de calidad principal.</div>' +
       '<label class="lbl">Días de gimnasio</label><div class="selRow">'+sel("gymDays",0,"0")+sel("gymDays",1,"1")+sel("gymDays",2,"2")+sel("gymDays",3,"3")+'</div>' +
 
       '<div class="fgHd">Tus datos</div>' +
@@ -1775,6 +2658,11 @@ function syncObInputs(){
   const map={raceDate:"ob-raceDate",age:"ob-age",height:"ob-height",weight:"ob-weight",c10:"ob-c10",cHM:"ob-cHM",t10:"ob-t10",tHM:"ob-tHM"};
   for(const k in map){ const v=g(map[k]); if(v!==undefined) ui.ob[k]=v; }
 }
+function syncCalcInputs(){
+  const g=(id)=>{ const el=document.getElementById(id); return el?el.value:undefined; };
+  const map={time:"calc-time",age:"calc-age",fcMax:"calc-fcmax",fcRest:"calc-fcrest"};
+  for(const k in map){ const v=g(map[k]); if(v!==undefined) ui.calc[k]=v; }
+}
 function syncModalInputs(){
   if(!ui.modal) return;
   const p=document.getElementById("m-pace"), n=document.getElementById("m-note");
@@ -1787,10 +2675,12 @@ function wire(){
   const dateEl=document.getElementById("ob-raceDate");
   if(dateEl) dateEl.onchange=()=>{ syncObInputs(); render(); };
   root.onclick=(e)=>{
-    const t=e.target.closest("[data-tab],[data-week],[data-log],[data-gym],[data-postpone],[data-delete],[data-reset],[data-rpe],[data-reps],[data-sel],[data-create],[data-save],[data-close],[data-stop],[data-auth-submit],[data-auth-switch],[data-auth-reset],[data-logout]");
+    const t=e.target.closest("[data-tab],[data-week],[data-log],[data-gym],[data-postpone],[data-delete],[data-undo-week],[data-reset],[data-rpe],[data-reps],[data-sel],[data-day],[data-setday],[data-calmonth],[data-coach],[data-toggle-achievements],[data-more-toggle],[data-more-close],[data-create],[data-save],[data-close],[data-stop],[data-auth-submit],[data-auth-switch],[data-auth-reset],[data-logout],[data-track-start],[data-track-pause],[data-track-resume],[data-track-stop],[data-track-discard],[data-track-apply]");
     if(!t) return;
     if(t.hasAttribute("data-stop")) return;
-    if(t.dataset.tab){ ui.tab=t.dataset.tab; render(); return; }
+    if(t.dataset.tab){ ui.tab=t.dataset.tab; ui.moreMenuOpen=false; render(); return; }
+    if(t.dataset.moreToggle!==undefined){ ui.moreMenuOpen=!ui.moreMenuOpen; render(); return; }
+    if(t.dataset.moreClose!==undefined){ ui.moreMenuOpen=false; render(); return; }
     if(t.dataset.week){ ui.viewWeek=parseInt(t.dataset.week); render(); return; }
     if(t.dataset.log){ ui.modal={week:ui.viewWeek,sessId:t.dataset.log,pace:null,rpe:null,note:null,repsDone:null}; render(); return; }
     if(t.dataset.gym){ toggleGym(ui.viewWeek,t.dataset.gym); return; }
@@ -1804,12 +2694,72 @@ function wire(){
       if(sess && confirm('¿Eliminar "'+sess.titulo+'" de esta semana? El resto del plan se recalcula sin esta sesión.')) deleteSession(ui.viewWeek,sess);
       return;
     }
+    if(t.dataset.undoWeek!==undefined){
+      const w=parseInt(t.dataset.undoWeek);
+      const raw=buildWeekRaw(w, state.profile.runDays, state.totalWeeks, state.event, state.goalPace);
+      const sess=raw.find(s=>s.id===t.dataset.undoId);
+      if(sess) restoreSession(w, sess);
+      return;
+    }
     if(t.dataset.reset){ if(confirm("¿Seguro que quieres borrar el plan y empezar de cero?")) resetPlan(); return; }
     if(t.dataset.rpe){ syncModalInputs(); ui.modal.rpe=parseInt(t.dataset.rpe); render(); return; }
     if(t.dataset.reps){ syncModalInputs(); ui.modal.repsDone=parseInt(t.dataset.reps); render(); return; }
     if(t.dataset.close){ ui.modal=null; render(); return; }
     if(t.dataset.save){ const sess=buildWeek(ui.modal.week,state.profile.runDays,state.profile.gymDays,state.totalWeeks,state.event,state.goalPace).find(s=>s.id===ui.modal.sessId); logSession(ui.modal.week,sess,document.getElementById("m-pace").value,(ui.modal.rpe!=null?ui.modal.rpe:6),document.getElementById("m-note").value,ui.modal.repsDone); return; }
+    if(t.dataset.trackStart){ startTracker(ui.modal.sessId, ui.modal.week); return; }
+    if(t.dataset.trackPause){ pauseTracker(); return; }
+    if(t.dataset.trackResume){ resumeTracker(); return; }
+    if(t.dataset.trackStop){ stopTracker(); return; }
+    if(t.dataset.trackDiscard){ if(confirm("¿Descartar esta grabación?")) discardTracker(); return; }
+    if(t.dataset.trackApply){ applyTrackerToModal(); return; }
     if(t.dataset.sel){ syncObInputs(); const v=t.dataset.val; ui.ob[t.dataset.sel]=isNaN(v)?v:parseFloat(v); render(); return; }
+    if(t.dataset.day!==undefined){
+      syncObInputs();
+      const d=parseInt(t.dataset.day);
+      let days=(ui.ob.trainingDays||[]).slice();
+      if(days.includes(d)){
+        if(days.length>3) days=days.filter(x=>x!==d);
+      } else {
+        if(days.length<6) days.push(d);
+      }
+      // se mantienen en orden Lu..Do internamente
+      ui.ob.trainingDays=WEEK_ORDER.filter(x=>days.includes(x));
+      render(); return;
+    }
+    if(t.dataset.setday!==undefined){
+      const d=parseInt(t.dataset.setday);
+      let days=(state.profile.trainingDays||[]).slice();
+      if(days.includes(d)){
+        if(days.length<=3){ showToast("Necesitas al menos 3 días de entrenamiento.", true); return; }
+        days=days.filter(x=>x!==d);
+      } else {
+        if(days.length>=6){ showToast("Como máximo 6 días de entrenamiento.", true); return; }
+        days.push(d);
+      }
+      days=WEEK_ORDER.filter(x=>days.includes(x));
+      const changedCount=days.length!==state.profile.runDays;
+      state.profile.trainingDays=days;
+      state.profile.runDays=days.length;
+      save(); render();
+      if(changedCount) showToast("Días actualizados. El número de sesiones por semana ha cambiado a "+days.length+".");
+      return;
+    }
+    if(t.dataset.calmonth!==undefined){
+      const delta=parseInt(t.dataset.calmonth);
+      if(delta===0){ ui.calMonth=new Date(new Date().getFullYear(), new Date().getMonth(), 1); }
+      else { const c=ui.calMonth||new Date(); ui.calMonth=new Date(c.getFullYear(), c.getMonth()+delta, 1); }
+      render(); return;
+    }
+    if(t.dataset.coach){
+      if(t.dataset.coach==="heavy") coachHeavyLegs();
+      else if(t.dataset.coach==="missed") coachMissedYesterday();
+      else if(t.dataset.coach==="great") coachFeelingGreat();
+      return;
+    }
+    if(t.dataset.toggleAchievements!==undefined){
+      ui.showAllAchievements=!ui.showAllAchievements;
+      render(); return;
+    }
     if(t.dataset.create){ createPlan(); return; }
     if(t.hasAttribute("data-auth-switch")){ syncAuthInputs(); auth.form.mode=auth.form.mode==="login"?"register":"login"; render(); return; }
     if(t.hasAttribute("data-auth-submit")){ syncAuthInputs(); if(auth.form.mode==="login") doLogin(); else doRegister(); return; }
@@ -1833,7 +2783,13 @@ function normalizeState(s){
   if(!s.overrides || typeof s.overrides!=="object") s.overrides={};
   if(!Array.isArray(s.history)) s.history=[];
   if(!s.volumeAdj) s.volumeAdj={repsDelta:0,recoveryMult:1,reason:"hold"};
+  if(!s.weekAdj) s.weekAdj={active:false,reason:null,since:null,postponedLong:false};
   if(typeof s.hardStreak!=="number") s.hardStreak=0;
+  if(s.profile && (!Array.isArray(s.profile.trainingDays) || s.profile.trainingDays.length!==s.profile.runDays)){
+    // genera un reparto por defecto: los primeros N días de WEEK_ORDER (Lu, Ma, Mi...)
+    const n=clamp(s.profile.runDays||4,3,6);
+    s.profile.trainingDays=WEEK_ORDER.slice(0,n);
+  }
   // los arrays dentro de "incoming-N" en overrides también pueden venir como objeto si RTDB los reindexó
   for(const k in s.overrides){
     if(k.startsWith("incoming-") && s.overrides[k] && !Array.isArray(s.overrides[k])){
@@ -1881,6 +2837,22 @@ function startAuthListener(){
   render(); // pantalla de carga mientras Firebase arranca
   if(window.__firebaseReady && window.firebaseAPI) startAuthListener();
   else window.addEventListener("firebase-ready", startAuthListener, {once:true});
+
+  // salvaguarda: si Firebase no responde en unos segundos (p.ej. abierto como
+  // archivo local file://, donde los módulos ES no cargan), avisa en vez de
+  // dejar la pantalla de carga para siempre.
+  setTimeout(()=>{
+    if(!auth.ready){
+      const root=document.getElementById("root");
+      root.innerHTML='<div class="shell"><div class="loadingScreen">' +
+        '<img class="logoOnboard" src="'+LOGO+'" alt="GOAT PACE">' +
+        '<h1 class="onboardTitle" style="margin-top:18px">NO SE PUDO<br><span class="accent">CONECTAR</span></h1>' +
+        '<p class="onboardSub">Esta app necesita cargarse desde una dirección <b>https://</b> (por ejemplo, tu enlace de GitHub Pages) para poder iniciar sesión. '+
+        'Si la has abierto como archivo local o desde un adjunto, ábrela en su lugar desde ese enlace en el navegador.</p>' +
+        '<button class="cta" style="max-width:240px" onclick="location.reload()">Reintentar</button>' +
+      '</div></div>';
+    }
+  }, 6000);
 })();
 </script>
 

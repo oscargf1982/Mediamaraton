@@ -94,6 +94,8 @@
   .ghostBtn.small.danger:hover{border-color:var(--accent-dk);color:var(--accent-dk);background:#FCEDE6;}
   .postponedTag{font-size:var(--fs-xs);font-weight:600;color:var(--accent);background:#FDE9DD;display:inline-block;padding:5px 12px;border-radius:99px;align-self:flex-start;}
   .card.race .postponedTag{background:rgba(252,94,21,.18);color:#FFB088;}
+  .recoveryTag{font-size:var(--fs-sm);color:var(--mut2);}
+  .card.race .recoveryTag{color:#9AA0B0;}
   /* desglose de bloques (warmup/work/cooldown) */
   .blockRow{display:flex;gap:8px;flex-wrap:wrap;}
   .blockChip{font-size:var(--fs-xs);font-weight:600;padding:6px 12px;border-radius:99px;}
@@ -403,10 +405,30 @@ function syncTitleToBlocks(sess){
   if(m && parseInt(m[1])!==mwb.reps) sess.titulo=mwb.reps+m[2];
   return sess;
 }
-// formatea la recuperación: "90″" o "2′"
+// horas de recuperación recomendadas antes de la siguiente sesión exigente,
+// según el tipo e intensidad del estímulo (principio general: a mayor intensidad
+// y impacto neuromuscular, más tiempo de adaptación antes de repetir esfuerzo).
+function recoveryHours(sess){
+  if(sess.gym) return 24; // fuerza: 24h antes de otra sesión de fuerza o de calidad
+  const mwb=sess.blocks?mainWorkBlock(sess.blocks):null;
+  switch(sess.tipo){
+    case "CARRERA":   return 72; // el objetivo del plan: recuperación larga garantizada (taper posterior)
+    case "RITMO":     return 48; // bloques largos a ritmo de competición/maratón: alta carga específica
+    case "LARGA":     return 36; // impacto acumulado y duración, aunque sea a ritmo suave
+    case "SERIES":    return mwb && mwb.paceKey==="race" ? 48 : 36; // más dura cuanto más cerca del ritmo de carrera
+    case "TEMPO":     return 24; // umbral: exigente pero metabólicamente más manejable
+    case "FARTLEK":   return 24;
+    case "ACTIVACIÓN":return 12;
+    case "RODAJE":    return 12; // recuperación activa: apenas restringe la siguiente sesión
+    default:          return 12;
+  }
+}
+function fmtRecHours(h){ return h>=24 ? Math.round(h/24)+(h===24?" día":" días") : h+" h"; }
+// formatea la recuperación entre repeticiones: "90″" o "2′"
 function fmtRecovery(sec){
   return sec>=60 ? Math.round(sec/60)+"′" : sec+"″";
 }
+
 
 /* sesiones de carrera base (estructura de 5: s1..s5), específicas por evento */
 function runSessions(w, totalWeeks, ev, goalPace){
@@ -744,20 +766,31 @@ function gymSessions(w, gymDays, totalWeeks, ev){
    Esto mantiene el número de sesiones por semana constante: si X se pospone,
    una sesión de la semana siguiente ocupa su lugar, y X ocupa el de esa sesión.
 */
+/* ---------- modelo de posposición/eliminación ----------
+   "Posponer" significa: ese día no se entrenó (enfermedad, lluvia...) y la
+   sesión se traslada a la semana siguiente. Reglas:
+   - Sesión de CALIDAD pospuesta -> se añade a la semana siguiente, y para no
+     inflar esa semana se elimina de ella una sesión de rodaje/tirada larga
+     (la menos específica). Si no hay ninguna, la semana siguiente crece igualmente.
+   - Tirada LARGA pospuesta -> se añade a la semana siguiente sin compensación
+     (esa semana crece en una sesión: recuperar el fondo es prioritario).
+   overrides:
+     "wN-<id>" = "deleted" | "postponed"
+     "incoming-N" = [sesiones completas que se añaden al principio de la semana N]
+*/
 function applyOverrides(runs, w){
   if(!state || !state.overrides) return runs;
   const ov=state.overrides;
   const out=[];
+  const incoming=ov["incoming-"+w];
+  if(incoming && incoming.length){
+    incoming.forEach(s=>out.push({...s,_postponedFrom:s._fromWeek}));
+  }
   runs.forEach(sess=>{
     const key="w"+w+"-"+sess.id;
     const st=ov[key];
-    if(st==="deleted") return; // fuera, sin sustituto
-    if(st==="postponed" || st==="postponed-to-prev"){
-      const sub=ov["swap-"+w+"-"+sess.id];
-      if(sub) out.push({...sub,_swapped:true});
-      // si no hay sustituto, la semana se queda con una sesión menos
-      return;
-    }
+    if(st==="deleted") return; // se omite (eliminada, o sacrificada para compensar una posposición)
+    if(st==="postponed") return; // se movió a la semana siguiente (ya incluida arriba como incoming)
     out.push(sess);
   });
   return out;
@@ -930,33 +963,50 @@ function toggleGym(weekN, sessId){
 // posponer: mueve la sesión al final de esta semana, o si ya estaba ahí, a la semana siguiente
 // candidata a intercambio: sesión de rodaje suave sin log, lo más "neutra" posible
 // (se evita mover sesiones de calidad o la tirada larga, que son las que definen la semana)
-function findSwapCandidate(weekSessions, weekN){
-  const ok=s=>!s.gym && s.tipo!=="CARRERA" && !s.quality && s.tipo!=="LARGA" && !state.logs["w"+weekN+"-"+s.id];
-  const candidates=weekSessions.filter(ok);
-  return candidates.length ? candidates[candidates.length-1] : null;
+// candidata a "sacrificar" en la semana siguiente cuando se pospone una sesión
+// de calidad: una sesión de rodaje o tirada larga sin registrar todavía
+// (se prioriza rodaje sobre tirada larga, para no tocar el fondo si se puede evitar)
+function findCompensationCandidate(weekSessions, weekN){
+  const noLog=s=>!s.gym && !state.logs["w"+weekN+"-"+s.id];
+  const rodajes=weekSessions.filter(s=>noLog(s) && s.tipo==="RODAJE");
+  if(rodajes.length) return rodajes[rodajes.length-1];
+  const largas=weekSessions.filter(s=>noLog(s) && s.tipo==="LARGA");
+  if(largas.length) return largas[0];
+  return null;
 }
 
-// posponer: intercambia la sesión con una de la semana siguiente, para no acumular carga.
-// Si no hay sesión intercambiable en la semana siguiente, simplemente se quita de aquí
-// (esa semana queda con una sesión menos, en vez de sobrecargar la siguiente).
+// posponer: ese día no se entrenó (enfermedad, lluvia...) y la sesión se traslada
+// a la semana siguiente.
+//  - Si era una sesión de CALIDAD: se añade a la semana siguiente, y se elimina de
+//    ella un rodaje/tirada larga para compensar (si existe alguno disponible).
+//  - Si era la TIRADA LARGA: se añade a la semana siguiente sin compensación,
+//    porque recuperar el fondo tiene prioridad.
 function postponeSession(weekN, sess){
   if(weekN>=state.totalWeeks){ showToast("No se puede posponer la última semana del plan.", true); return; }
   if(!state.overrides) state.overrides={};
-  const nextWeek=buildWeek(weekN+1,state.profile.runDays,state.profile.gymDays,state.totalWeeks,state.event,state.goalPace).filter(s=>!s.gym);
-  const swap=findSwapCandidate(nextWeek, weekN+1);
 
   state.overrides["w"+weekN+"-"+sess.id]="postponed";
-  if(swap){
-    // la sesión pospuesta ocupa el hueco de "swap" en la semana siguiente
-    state.overrides["swap-"+(weekN+1)+"-"+swap.id]={...sess, id:sess.id+"-pp"+weekN};
-    state.overrides["w"+(weekN+1)+"-"+swap.id]="postponed-to-prev";
-    // y "swap" ocupa el hueco que deja la pospuesta en esta semana
-    state.overrides["swap-"+weekN+"-"+sess.id]={...swap, id:swap.id+"-pp"+(weekN+1)};
+  const nextKey="incoming-"+(weekN+1);
+  if(!state.overrides[nextKey]) state.overrides[nextKey]=[];
+  state.overrides[nextKey].push({...sess, id:sess.id+"-pp"+weekN, _fromWeek:weekN});
+
+  if(sess.quality){
+    const nextWeek=buildWeek(weekN+1,state.profile.runDays,state.profile.gymDays,state.totalWeeks,state.event,state.goalPace).filter(s=>!s.gym);
+    const comp=findCompensationCandidate(nextWeek, weekN+1);
+    if(comp){
+      state.overrides["w"+(weekN+1)+"-"+comp.id]="deleted";
+      save(); render();
+      showToast("Sesión movida a la semana "+(weekN+1)+". Para compensar, se ha eliminado de esa semana: \""+comp.titulo+"\".");
+    } else {
+      save(); render();
+      showToast("Sesión movida a la semana "+(weekN+1)+". No había rodaje ni tirada larga que quitar para compensar, así que esa semana tendrá una sesión más.");
+    }
+  } else if(sess.tipo==="LARGA"){
     save(); render();
-    showToast("Sesión movida a la semana "+(weekN+1)+", a cambio de un rodaje suave que se adelanta a esta semana. El total de sesiones por semana no cambia.");
+    showToast("Tirada larga movida a la semana "+(weekN+1)+". Recuperar el fondo es prioritario, así que se añade sin quitar nada más esa semana.");
   } else {
     save(); render();
-    showToast("Sesión movida a la semana "+(weekN+1)+". Esa semana no tenía un rodaje suave libre para intercambiar, así que tendrá una sesión más esa semana.");
+    showToast("Sesión movida a la semana "+(weekN+1)+".");
   }
 }
 
@@ -968,18 +1018,15 @@ function deleteSession(weekN, sess){
   showToast("Sesión eliminada de la semana "+weekN+". El resto del plan se ha recalculado.");
 }
 
-// deshacer una posposición, intercambio o eliminación
+// deshacer una posposición o eliminación
 function restoreSession(weekN, sess){
   if(!state.overrides) return;
   const key="w"+weekN+"-"+sess.id;
-  // limpieza: elimina todas las claves de override relacionadas con esta sesión
-  delete state.overrides[key];
-  delete state.overrides["swap-"+weekN+"-"+sess.id];
-  for(const k in state.overrides){
-    if(k.startsWith("swap-") && state.overrides[k] && state.overrides[k].id===sess.id+"-pp"+weekN){
-      delete state.overrides[k];
-    }
+  if(state.overrides[key]==="postponed"){
+    const nextKey="incoming-"+(weekN+1);
+    if(state.overrides[nextKey]) state.overrides[nextKey]=state.overrides[nextKey].filter(s=>s.id!==sess.id+"-pp"+weekN);
   }
+  delete state.overrides[key];
   save(); render();
 }
 
@@ -1056,7 +1103,8 @@ function weekTabHTML(P, curWeek){
       html+='<div class="card gym'+(log?" done":"")+'">' +
         '<div class="cardHead"><span class="cardIcon">'+icon+'</span><div class="cardType">'+sess.tipo+'</div></div>' +
         '<div class="cardTitle">'+esc(sess.titulo)+'</div><div class="cardDetail">'+esc(sess.detalle)+'</div>' +
-        (sess._swapped?'<div class="postponedTag">↪ Intercambiada con la semana anterior</div>':'') +
+        '<div class="recoveryTag">😴 Recuperación recomendada: '+fmtRecHours(recoveryHours(sess))+' antes de la siguiente sesión exigente</div>' +
+        (sess._postponedFrom?'<div class="postponedTag">↪ Pospuesta desde la semana '+sess._postponedFrom+'</div>':'') +
         (log?'<div class="logLine">✓ Hecho</div>':'') +
         '<div class="cardFoot"'+(!log?' style="justify-content:space-between"':'')+'>' +
           (!log?'<button class="ghostBtn small" data-postpone="'+sess.id+'">Posponer</button><button class="ghostBtn small danger" data-delete="'+sess.id+'">Eliminar</button>':'') +
@@ -1073,8 +1121,9 @@ function weekTabHTML(P, curWeek){
       html+='<div class="card'+(isRace?" race":"")+(log?" done":"")+'">' +
         '<div class="cardHead"><span class="cardIcon">'+icon+'</span><div class="cardType">'+sess.tipo+(sess.quality&&!isRace?" · CALIDAD":"")+'</div></div>' +
         '<div class="cardTitle">'+esc(sess.titulo)+'</div><div class="cardDetail">'+esc(sess.detalle)+'</div>' +
-        (sess._swapped?'<div class="postponedTag">↪ Intercambiada con la semana anterior</div>':'') +
+        (sess._postponedFrom?'<div class="postponedTag">↪ Pospuesta desde la semana '+sess._postponedFrom+'</div>':'') +
         (sess.blocks?blockStructureHTML(sess.blocks,P):'') +
+        (isRace?'<div class="recoveryTag">😴 Tras la carrera: al menos '+fmtRecHours(recoveryHours(sess))+' de descanso activo antes de volver a entrenar con intensidad</div>':'<div class="recoveryTag">😴 Recuperación recomendada: '+fmtRecHours(recoveryHours(sess))+' antes de la siguiente sesión exigente</div>') +
         '<div class="statChips">' +
           '<div class="statChip"><span class="statChipLbl">'+objLbl+'</span><span class="statChipVal">'+fmtPace(objPace)+'<span class="statChipUnit">/km</span></span></div>' +
           '<div class="statChip"><span class="statChipLbl">RPE objetivo</span><span class="statChipVal">'+rpeTarget+'<span class="statChipUnit">/10</span></span></div>' +
@@ -1221,6 +1270,19 @@ function dashboardTabHTML(){
   const wk=weeks[curWeek]||{plannedMin:0,doneMin:0,doneCount:0,plannedCount:0,sessions:[]};
   const fmtH=(m)=>{ const h=Math.floor(m/60),mm=Math.round(m%60); return h>0?(h+"h "+(mm?mm+"′":"")):(mm+"′"); };
 
+  // aviso de sobrecarga: semanas con sesiones "entrantes" por posposición que
+  // superan el número habitual de días de carrera de la semana
+  const overload=[];
+  [curWeek, curWeek+1].forEach(w=>{
+    if(w<1 || w>state.totalWeeks) return;
+    const ss=buildWeek(w,state.profile.runDays,state.profile.gymDays,state.totalWeeks,state.event,state.goalPace).filter(x=>!x.gym);
+    const incoming=ss.filter(x=>x._postponedFrom);
+    const baseCount = w===state.totalWeeks ? ss.length-incoming.length : state.profile.runDays;
+    if(incoming.length>0 && ss.length>baseCount){
+      overload.push({week:w, extra:ss.length-baseCount, incoming, total:ss.length});
+    }
+  });
+
   // ACWR
   const ac=acwr(history);
   let loadLabel="—", loadClass="";
@@ -1249,7 +1311,16 @@ function dashboardTabHTML(){
 
   const stat=(lbl,val,unit,extra)=>'<div class="stat"><div class="statLbl">'+lbl+'</div><div class="statVal">'+val+'<span class="statUnit">'+unit+'</span></div>'+(extra?'<div class="statExtra">'+extra+'</div>':'')+'</div>';
 
-  let html='<div class="dashGrid">';
+  let html='';
+  if(overload.length){
+    overload.forEach(o=>{
+      const names=o.incoming.map(s=>'"'+s.titulo+'"').join(' y ');
+      const when=o.week===curWeek?'esta semana':'la semana próxima (S'+o.week+')';
+      const verb=o.incoming.length>1?'han caído':'ha caído';
+      html+='<div class="banner warn">⚠ '+(o.incoming.length>1?'Hay '+o.incoming.length+' sesiones pospuestas':'Hay una sesión pospuesta')+' ('+names+') que '+verb+' en '+when+', que ahora tiene '+o.total+' sesiones en lugar de las '+(o.total-o.extra)+' habituales. Si no te cabe todo, considera eliminar alguna de las sesiones de menor prioridad esa semana.</div>';
+    });
+  }
+  html+='<div class="dashGrid">';
 
   // Próxima carrera (destacada)
   html+='<div class="stat statWide statAccent">' +

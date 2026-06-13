@@ -6,7 +6,7 @@
      van siempre directas a la red, para no romper login ni sincronización.
    - Sube CACHE_VERSION cuando cambie el HTML para forzar refresco. */
 
-const CACHE_VERSION = "goat-pace-v1";
+const CACHE_VERSION = "goat-pace-v2";
 const CORE_ASSETS = [
   "./plan-media-maraton.html",
   "./manifest.webmanifest",

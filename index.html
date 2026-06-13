@@ -2590,6 +2590,83 @@ function haversine(a,b){
   return 2*EARTH_R*Math.asin(Math.sqrt(s));
 }
 
+// Fase 1: abre la pantalla de preparación (pide permiso de GPS de forma explícita).
+// En PWA instaladas de Android el permiso de ubicación no siempre está concedido
+// y conviene solicitarlo con un gesto del usuario antes de arrancar el cronómetro.
+function openTrackerPrep(sessId, week){
+  ui.tracker={
+    sessId, week, status:"prep",
+    startTime:null, elapsedAtPause:0,
+    points:[], distanceM:0, lastSpeed:0,
+    watchId:null, wakeLock:null, wakeLockState:"pending",
+    gpsError:null, gpsReady:false, permState:null, requesting:false,
+  };
+  ui.modal=null;
+  // consulta el estado del permiso si la Permissions API está disponible (informativo)
+  if(navigator.permissions && navigator.permissions.query){
+    navigator.permissions.query({name:"geolocation"}).then(st=>{
+      if(ui.tracker && ui.tracker.status==="prep"){ ui.tracker.permState=st.state; render(); }
+    }).catch(()=>{});
+  }
+  render();
+}
+
+// Fase 2 (tras pulsar "Activar GPS"): pide la ubicación con un gesto del usuario.
+// getCurrentPosition es lo que dispara el diálogo de permiso de forma más fiable.
+function requestGeoAndStart(){
+  if(!ui.tracker) return;
+  if(!("geolocation" in navigator)){
+    ui.tracker.gpsError="Este dispositivo/navegador no soporta geolocalización. Puedes seguir con el cronómetro y meter el ritmo a mano al terminar.";
+    beginTracking(); // arranca igualmente con cronómetro
+    return;
+  }
+  ui.tracker.requesting=true; render();
+  navigator.geolocation.getCurrentPosition(
+    (pos)=>{ // permiso concedido y primera posición obtenida
+      if(!ui.tracker) return;
+      ui.tracker.requesting=false;
+      ui.tracker.gpsReady=true;
+      beginTracking();
+      onGpsUpdate(pos); // aprovecha la primera lectura
+    },
+    (err)=>{ // permiso denegado o error
+      if(!ui.tracker) return;
+      ui.tracker.requesting=false;
+      ui.tracker.permState = err.code===1 ? "denied" : ui.tracker.permState;
+      if(err.code===1){
+        ui.tracker.gpsError="Permiso de ubicación denegado.";
+      } else {
+        // error transitorio (señal/timeout): arranca igualmente, watchPosition seguirá intentando
+        beginTracking();
+        return;
+      }
+      render();
+    },
+    {enableHighAccuracy:true, timeout:15000, maximumAge:0}
+  );
+}
+
+// arranca el cronómetro, el watchPosition continuo y el wake lock
+function beginTracking(){
+  if(!ui.tracker) return;
+  ui.tracker.status="running";
+  ui.tracker.startTime=Date.now();
+  if("geolocation" in navigator){
+    ui.tracker.watchId=navigator.geolocation.watchPosition(onGpsUpdate, onGpsError, {enableHighAccuracy:true, maximumAge:1000, timeout:10000});
+  }
+  requestWakeLock();
+  if(!trackerVisHandler){
+    trackerVisHandler=()=>{
+      if(document.visibilityState==="visible" && ui.tracker && (ui.tracker.status==="running"||ui.tracker.status==="paused")){
+        requestWakeLock();
+      }
+    };
+    document.addEventListener("visibilitychange", trackerVisHandler);
+  }
+  if(!trackerTimer) trackerTimer=setInterval(()=>{ if(ui.tracker&&ui.tracker.status==="running") render(); },1000);
+  render();
+}
+
 function startTracker(sessId, week){
   ui.tracker={
     sessId, week, status:"running",
@@ -2727,6 +2804,30 @@ function fmtClock(ms){
 function trackerHTML(P){
   const t=ui.tracker;
   const sess=buildWeek(t.week,state.profile.runDays,state.profile.gymDays,state.totalWeeks,state.event,state.goalPace).find(s=>s.id===t.sessId);
+
+  // --- Fase de preparación: pedir permiso de GPS con un gesto del usuario ---
+  if(t.status==="prep"){
+    let h='<div class="overlay" data-stop="1"><div class="modal trackerModal" data-stop="1">';
+    h+='<div class="cardType">'+(sess?sess.tipo+' · '+esc(sess.titulo):'')+'</div>';
+    h+='<div style="font-size:42px;margin:10px 0">📍</div>';
+    h+='<div class="cardTitle">Preparar GPS</div>';
+    if(t.gpsError && t.permState==="denied"){
+      h+='<div class="trackerWarn" style="margin-top:12px">⚠ El permiso de ubicación está bloqueado. Para activarlo:<br><br>'+
+        '<b>Si abriste la app instalada:</b> Ajustes de Android → Aplicaciones → Goat Pace Coach → Permisos → toca los ⋮ (arriba) → «Todos los permisos» → Ubicación → Permitir.<br><br>'+
+        '<b>Si estás en Chrome:</b> toca el candado de la barra de direcciones → Permisos → Ubicación → Permitir.<br><br>'+
+        'Después vuelve aquí y pulsa de nuevo «Activar GPS».</div>';
+    } else {
+      h+='<div class="trackerNote" style="margin-top:10px">Para medir distancia, ritmo y velocidad necesito acceso a tu ubicación. Pulsa el botón y acepta el permiso cuando el móvil lo pida.</div>';
+    }
+    h+='<div class="modalBtns" style="flex-direction:column;gap:10px">';
+    h+='<button class="cta" style="margin-top:0;width:100%"'+(t.requesting?' disabled':'')+' data-track-geo="1">'+(t.requesting?'Solicitando ubicación…':'📍 Activar GPS y empezar')+'</button>';
+    h+='<button class="ghostBtn" style="width:100%" data-track-skipgeo="1">Solo cronómetro (sin GPS)</button>';
+    h+='<button class="ghostBtn small" style="color:var(--accent-dk)" data-track-discard="1">Cancelar</button>';
+    h+='</div>';
+    h+='</div></div>';
+    return h;
+  }
+
   const elapsed=trackerElapsedMs();
   const km=t.distanceM/1000;
   const elapsedMin=elapsed/60000;
@@ -2882,7 +2983,7 @@ function wire(){
   const dateEl=document.getElementById("ob-raceDate");
   if(dateEl) dateEl.onchange=()=>{ syncObInputs(); render(); };
   root.onclick=(e)=>{
-    const t=e.target.closest("[data-tab],[data-week],[data-log],[data-gym],[data-postpone],[data-delete],[data-undo-week],[data-swap],[data-reset],[data-newplan],[data-export],[data-rpe],[data-reps],[data-sel],[data-day],[data-setday],[data-calmonth],[data-coach],[data-toggle-achievements],[data-more-toggle],[data-more-close],[data-calcdist],[data-calc-equiv],[data-calc-hr],[data-create],[data-save],[data-close],[data-stop],[data-auth-submit],[data-auth-switch],[data-auth-reset],[data-logout],[data-track-start],[data-track-pause],[data-track-resume],[data-track-stop],[data-track-discard],[data-track-apply]");
+    const t=e.target.closest("[data-tab],[data-week],[data-log],[data-gym],[data-postpone],[data-delete],[data-undo-week],[data-swap],[data-reset],[data-newplan],[data-export],[data-rpe],[data-reps],[data-sel],[data-day],[data-setday],[data-calmonth],[data-coach],[data-toggle-achievements],[data-more-toggle],[data-more-close],[data-calcdist],[data-calc-equiv],[data-calc-hr],[data-create],[data-save],[data-close],[data-stop],[data-auth-submit],[data-auth-switch],[data-auth-reset],[data-logout],[data-track-start],[data-track-geo],[data-track-skipgeo],[data-track-pause],[data-track-resume],[data-track-stop],[data-track-discard],[data-track-apply]");
     if(!t) return;
     if(t.hasAttribute("data-stop")) return;
     if(t.dataset.tab){ ui.tab=t.dataset.tab; ui.moreMenuOpen=false; render(); return; }
@@ -2920,7 +3021,9 @@ function wire(){
     if(t.dataset.reps){ syncModalInputs(); ui.modal.repsDone=parseInt(t.dataset.reps); render(); return; }
     if(t.dataset.close){ ui.modal=null; render(); return; }
     if(t.dataset.save){ const sess=buildWeek(ui.modal.week,state.profile.runDays,state.profile.gymDays,state.totalWeeks,state.event,state.goalPace).find(s=>s.id===ui.modal.sessId); logSession(ui.modal.week,sess,document.getElementById("m-pace").value,(ui.modal.rpe!=null?ui.modal.rpe:6),document.getElementById("m-note").value,ui.modal.repsDone); return; }
-    if(t.dataset.trackStart){ startTracker(ui.modal.sessId, ui.modal.week); return; }
+    if(t.dataset.trackStart){ openTrackerPrep(ui.modal.sessId, ui.modal.week); return; }
+    if(t.dataset.trackGeo){ requestGeoAndStart(); return; }
+    if(t.dataset.trackSkipgeo){ if(ui.tracker){ ui.tracker.gpsError=null; beginTracking(); } return; }
     if(t.dataset.trackPause){ pauseTracker(); return; }
     if(t.dataset.trackResume){ resumeTracker(); return; }
     if(t.dataset.trackStop){ stopTracker(); return; }

@@ -131,6 +131,16 @@
   .banner.warn{background:#FCEDE6;color:#B23D14;border-color:#F4D2C2;}
 
   /* ============ DASHBOARD / RESUMEN ============ */
+  .todayCard{background:var(--ink);color:#fff;border-radius:18px;padding:22px 24px;margin-bottom:16px;box-shadow:var(--sh2);}
+  .todayCard.todayRace{background:var(--accent);}
+  .todayLbl{font-size:var(--fs-xs);letter-spacing:.14em;font-weight:700;color:var(--accent);}
+  .todayCard.todayRace .todayLbl{color:#fff;}
+  .todayTitle{font-size:var(--fs-xl);font-weight:800;letter-spacing:-.01em;margin:4px 0 4px;}
+  .todayDetail{font-size:var(--fs-md);color:#C9CCD6;line-height:1.5;}
+  .todayCard.todayRace .todayDetail{color:#FFE4D6;}
+  .todayMetaRow{display:flex;gap:20px;flex-wrap:wrap;margin-top:14px;font-size:var(--fs-sm);color:#C9CCD6;}
+  .todayCard.todayRace .todayMetaRow{color:#FFE4D6;}
+  .todayMetaRow b{font-family:var(--mono);font-size:var(--fs-lg);color:#fff;}
   .dashGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px;}
   .statWide{grid-column:1/-1;}
   .statAccent{background:var(--ink);color:#fff;}
@@ -1035,6 +1045,13 @@ function createPlan(){
   showToast(msg);
 }
 
+// RPE esperado de una sesión según su tipo (referencia para el feedback post-sesión)
+function expectedRPE(sess){
+  if(sess.tipo==="CARRERA") return 9;
+  if(sess.quality) return 7;
+  return 4;
+}
+
 function adaptVolume(sess, repsDone, rpe){
   const mwb=sess.blocks?mainWorkBlock(sess.blocks):null;
   if(!mwb || mwb.reps<=1) return null; // sesión sin estructura de repeticiones: no hay volumen que ajustar
@@ -1054,6 +1071,19 @@ function logSession(weekN, sess, paceStr, rpe, note, repsDone){
   const prescribed=mwb?paces(f,state.gap,state.event)[mwb.paceKey].v:paces(f,state.gap,state.event)[sess.paceKey].v;
   const key="w"+weekN+"-"+sess.id;
   state.logs[key]={pace:actual,rpe,note,repsDone:repsDone!=null?repsDone:null,date:new Date().toISOString()};
+
+  // --- feedback inmediato: compara lo previsto con lo realmente ocurrido ---
+  const fb=[];
+  const expRpe=expectedRPE(sess);
+  if(rpe-expRpe>=2) fb.push("RPE "+rpe+" en una sesión prevista como RPE ~"+expRpe+": fue más dura de lo esperado.");
+  else if(expRpe-rpe>=2) fb.push("RPE "+rpe+" en una sesión prevista como RPE ~"+expRpe+": fue más cómoda de lo esperado.");
+  const paceDelta=Math.round(prescribed-actual); // + = más rápido de lo previsto
+  if(Math.abs(paceDelta)>=8){
+    fb.push(paceDelta>0
+      ? "Has ido "+paceDelta+" s/km más rápido de lo programado."
+      : "Has ido "+Math.abs(paceDelta)+" s/km más lento de lo programado.");
+  }
+
   let msg;
   if(sess.quality){
     const {next,adj}=adaptFitness(f,prescribed,actual,rpe,state.initialPace,state.goalPace);
@@ -1080,7 +1110,17 @@ function logSession(weekN, sess, paceStr, rpe, note, repsDone){
     state.hardStreak=rpe>=9?state.hardStreak+1:state.hardStreak;
     msg=rpe>=8?"Registrado. Un rodaje suave no debería costar tanto: vigila la fatiga.":"Registrado. Los rodajes suaves no modifican los ritmos.";
   }
-  save(); ui.modal=null; render(); showToast(msg);
+  save();
+
+  // aviso de carga: si la semana en curso ya supera claramente lo previsto
+  const hist=buildHistory();
+  const curWk=hist.weeks[hist.curWeek];
+  if(curWk && curWk.plannedMin>0 && curWk.doneMin > curWk.plannedMin*1.15 && curWk.doneCount>=2){
+    fb.push("Tu carga esta semana ya supera lo previsto ("+Math.round(curWk.doneMin)+" de "+Math.round(curWk.plannedMin)+" min planeados). Vigila la fatiga en los próximos días.");
+  }
+
+  if(fb.length) msg = fb.join(" ") + " " + msg;
+  ui.modal=null; render(); showToast(msg);
 }
 
 function toggleGym(weekN, sessId){
@@ -1245,7 +1285,7 @@ function weekTabHTML(P, curWeek){
     } else {
       const p=P[sess.paceKey];
       const mins=estMinutes(sess,P);
-      const rpeTarget=sess.quality||isRace?(isRace?9:7):4;
+      const rpeTarget=expectedRPE(sess);
       const mwb=sess.blocks?mainWorkBlock(sess.blocks):null;
       const objPace=mwb?P[mwb.paceKey].v:p.v;
       const objLbl=mwb?P[mwb.paceKey].label:p.label;
@@ -1446,7 +1486,38 @@ function dashboardTabHTML(){
 
   const stat=(lbl,val,unit,extra)=>'<div class="stat"><div class="statLbl">'+lbl+'</div><div class="statVal">'+val+'<span class="statUnit">'+unit+'</span></div>'+(extra?'<div class="statExtra">'+extra+'</div>':'')+'</div>';
 
+  // próxima sesión sin registrar de la semana actual (prioriza carrera sobre gimnasio)
+  const pending=wk.sessions.filter(s=>!state.logs["w"+curWeek+"-"+s.id]);
+  const today=pending.find(s=>!s.gym) || pending[0] || null;
+  const raceDateForToday=new Date(state.raceDate+"T00:00:00");
+  const daysToRaceToday=Math.max(0,Math.ceil((raceDateForToday.getTime()-Date.now())/86400000));
+
   let html='';
+  if(today){
+    const isRaceToday=today.tipo==="CARRERA";
+    if(today.gym){
+      html+='<div class="todayCard"><div class="todayLbl">HOY</div>' +
+        '<div class="todayTitle">'+esc(today.titulo)+'</div>' +
+        '<div class="todayDetail">'+esc(today.detalle)+'</div>' +
+        '<div class="todayMetaRow"><span>🏋️ Sesión de fuerza</span><span>Faltan '+daysToRaceToday+' días para la carrera</span></div>' +
+      '</div>';
+    } else {
+      const mwb=today.blocks?mainWorkBlock(today.blocks):null;
+      const objPace=mwb?P[mwb.paceKey].v:P[today.paceKey].v;
+      const objLbl=mwb?P[mwb.paceKey].label:P[today.paceKey].label;
+      const mins=estMinutes(today,P);
+      html+='<div class="todayCard'+(isRaceToday?" todayRace":"")+'"><div class="todayLbl">'+(isRaceToday?"🏁 ES EL DÍA":"HOY")+'</div>' +
+        '<div class="todayTitle">'+esc(today.titulo)+'</div>' +
+        '<div class="todayDetail">'+esc(today.detalle)+'</div>' +
+        '<div class="todayMetaRow">' +
+          '<span><b>'+fmtPace(objPace)+'</b>/km · '+objLbl.toLowerCase()+'</span>' +
+          '<span>≈'+mins+' min</span>' +
+          '<span>'+(isRaceToday?'¡Hoy!':'Faltan '+daysToRaceToday+' días')+'</span>' +
+        '</div>' +
+      '</div>';
+    }
+  }
+
   if(overload.length){
     overload.forEach(o=>{
       const names=o.incoming.map(s=>'"'+s.titulo+'"').join(' y ');

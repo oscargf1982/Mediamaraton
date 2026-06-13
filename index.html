@@ -92,6 +92,9 @@
   .card.race .statChipUnit{color:#9AA0B0;}
   .cardFoot{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;}
   .ghostBtn.small{padding:9px 14px;font-size:var(--fs-xs);border-radius:99px;border:1px solid var(--line);background:transparent;color:var(--mut);}
+  .ghostBtn.small.reorderBtn{padding:9px 11px;font-size:11px;}
+  .ghostBtn.small.reorderBtn:disabled{opacity:.3;cursor:default;}
+  .ghostBtn.small.reorderBtn:disabled:hover{border-color:var(--line);color:var(--mut);}
   .card.race .ghostBtn.small{border-color:rgba(255,255,255,.25);color:#C9CCD6;}
   .ghostBtn.small:hover{border-color:var(--ink);color:var(--ink);}
   .card.race .ghostBtn.small:hover{border-color:#fff;color:#fff;}
@@ -154,6 +157,14 @@
   .calDot{width:9px;height:9px;border-radius:3px;display:inline-block;}
 
   /* ============ DASHBOARD / RESUMEN ============ */
+  .coachFeed{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;}
+  .feedItem{display:flex;gap:10px;align-items:flex-start;background:var(--card);border-radius:12px;padding:11px 14px;box-shadow:var(--sh);}
+  .feedIcon{font-size:18px;line-height:1.4;flex:none;}
+  .feedText{font-size:var(--fs-sm);color:var(--ink);line-height:1.45;}
+  .feedItem.feed-warn{box-shadow:var(--sh),inset 4px 0 0 var(--accent);}
+  .feedItem.feed-good{box-shadow:var(--sh),inset 4px 0 0 var(--green);}
+  .feedItem.feed-info{box-shadow:var(--sh),inset 4px 0 0 var(--mut2);}
+
   .todayCard{background:var(--ink);color:#fff;border-radius:18px;padding:22px 24px;margin-bottom:16px;box-shadow:var(--sh2);}
   .todayCard.todayRace{background:var(--accent);}
   .todayLbl{font-size:var(--fs-xs);letter-spacing:.14em;font-weight:700;color:var(--accent);}
@@ -932,6 +943,17 @@ function applyOverrides(runs, w){
     if(st==="postponed") return; // se movió a la semana siguiente (ya incluida arriba como incoming)
     out.push(sess);
   });
+  // orden manual: el usuario puede reordenar las sesiones de una semana arrastrándolas
+  // con las flechas ▲▼. Si hay un orden guardado, se respeta; las sesiones nuevas
+  // que no estuvieran en ese orden (p. ej. llegadas por posposición después) van al final.
+  const order=ov["order-"+w];
+  if(order && order.length){
+    const byId={}; out.forEach(s=>byId[s.id]=s);
+    const reordered=[];
+    order.forEach(id=>{ if(byId[id]){ reordered.push(byId[id]); delete byId[id]; } });
+    Object.values(byId).forEach(s=>reordered.push(s)); // lo que sobre, al final
+    return reordered;
+  }
   return out;
 }
 
@@ -1404,6 +1426,23 @@ function findCompensationCandidate(weekSessions, weekN){
 //    ella un rodaje/tirada larga para compensar (si existe alguno disponible).
 //  - Si era la TIRADA LARGA: se añade a la semana siguiente sin compensación,
 //    porque recuperar el fondo tiene prioridad.
+// intercambia la posición de una sesión de carrera con la inmediatamente
+// anterior o siguiente dentro de la misma semana (gimnasio y carrera final no se mueven)
+function swapSessions(weekN, sessId, direction){
+  const all=buildWeek(weekN,state.profile.runDays,state.profile.gymDays,state.totalWeeks,state.event,state.goalPace);
+  const runs=all.filter(s=>!s.gym);
+  const idx=runs.findIndex(s=>s.id===sessId);
+  if(idx<0) return;
+  const otherIdx=idx+direction;
+  if(otherIdx<0 || otherIdx>=runs.length) return;
+  if(runs[idx].tipo==="CARRERA" || runs[otherIdx].tipo==="CARRERA") return; // la sesión de carrera no se reordena
+  const order=runs.map(s=>s.id);
+  [order[idx], order[otherIdx]]=[order[otherIdx], order[idx]];
+  if(!state.overrides) state.overrides={};
+  state.overrides["order-"+weekN]=order;
+  save(); render();
+}
+
 function postponeSession(weekN, sess){
   if(weekN>=state.totalWeeks){ showToast("No se puede posponer la última semana del plan.", true); return; }
   if(!state.overrides) state.overrides={};
@@ -1474,7 +1513,52 @@ function restoreSession(weekN, sess){
   showToast("Sesión restaurada en la semana "+weekN+".");
 }
 
-function resetPlan(){ storage.del(STORAGE_KEY); state=null; ui.tab="resumen"; ui.modal=null; ui.ob=defaultOb(); render(); }
+/* ---------- exportación de datos ---------- */
+function downloadFile(filename, content, mime){
+  const blob=new Blob([content], {type:mime});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url; a.download=filename;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+}
+function csvEscape(v){
+  const s=String(v==null?"":v);
+  return /[",\n;]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s;
+}
+function exportData(format){
+  const stamp=new Date().toISOString().slice(0,10);
+  if(format==="json"){
+    downloadFile("goat-pace-backup-"+stamp+".json", JSON.stringify(state,null,2), "application/json");
+    showToast("Descarga iniciada: copia de seguridad completa en JSON.");
+    return;
+  }
+  // CSV: una fila por sesión registrada, con su fecha real, tipo, ritmo previsto/real, RPE y nota
+  const P=paces(state.fitnessPace,state.gap,state.event);
+  const rows=[["semana","fecha","tipo","titulo","ritmo_previsto_min_km","ritmo_real_min_km","rpe","repeticiones_hechas","nota"]];
+  for(let w=1;w<=state.totalWeeks;w++){
+    const ss=buildWeek(w,state.profile.runDays,state.profile.gymDays,state.totalWeeks,state.event,state.goalPace);
+    const runs=ss.filter(s=>!s.gym);
+    runs.forEach((sess,i)=>{
+      const log=state.logs["w"+w+"-"+sess.id];
+      if(!log) return;
+      const mwb=sess.blocks?mainWorkBlock(sess.blocks):null;
+      const prescribed=mwb?P[mwb.paceKey].v:P[sess.paceKey].v;
+      const fecha=YMD(dateForSession(w,i));
+      rows.push([w, fecha, sess.tipo, sess.titulo, fmtPace(prescribed), fmtPace(log.pace), log.rpe, log.repsDone!=null?log.repsDone:"", log.note||""]);
+    });
+  }
+  const csv=rows.map(r=>r.map(csvEscape).join(";")).join("\n");
+  downloadFile("goat-pace-sesiones-"+stamp+".csv", "\ufeff"+csv, "text/csv;charset=utf-8");
+  showToast("Descarga iniciada: "+(rows.length-1)+" sesiones registradas en CSV.");
+}
+
+function resetPlan(){
+  storage.del(STORAGE_KEY);
+  if(auth.user && window.firebaseAPI) window.firebaseAPI.saveState(auth.user.uid, null).catch(()=>{});
+  state=null; ui.tab="resumen"; ui.modal=null; ui.ob=defaultOb(); render();
+}
 
 /* ---------- render ---------- */
 function render(){
@@ -1567,6 +1651,7 @@ function weekTabHTML(P, curWeek){
   if(w!==curWeek) html+='<button class="todayBtn" data-week="'+curWeek+'">Ir a la semana actual ('+curWeek+')</button>';
   html+='<div class="sessionList">';
   const ICONS={SERIES:"⚡",FARTLEK:"⚡",TEMPO:"🔥",RITMO:"🎯",LARGA:"🛣️",RODAJE:"👟",ACTIVACIÓN:"✨",CARRERA:"🏁",GIMNASIO:"🏋️"};
+  const runOrder=sessions.filter(s=>!s.gym);
   sessions.forEach(sess=>{
     const log=state.logs["w"+w+"-"+sess.id];
     const isRace=sess.tipo==="CARRERA";
@@ -1602,9 +1687,22 @@ function weekTabHTML(P, curWeek){
           '<div class="statChip"><span class="statChipLbl">Duración est.</span><span class="statChipVal">≈'+mins+'<span class="statChipUnit">min</span></span></div>' +
         '</div>' +
         (log?'<div class="logLine">✓ Hecho a <b>'+fmtPace(log.pace)+'</b> /km · RPE '+log.rpe+(log.note?" · "+esc(log.note):"")+'</div>':'') +
-        '<div class="cardFoot"'+(canModify?' style="justify-content:space-between"':'')+'>' +
-          (canModify?'<button class="ghostBtn small" data-postpone="'+sess.id+'">Posponer</button><button class="ghostBtn small danger" data-delete="'+sess.id+'">Eliminar</button>':'') +
-          '<button class="logBtn" data-log="'+sess.id+'">'+(log?"Editar marca":"Registrar marca")+'</button>' +
+        '<div class="cardFoot" style="justify-content:space-between">' +
+          '<div style="display:flex;gap:6px">' +
+            (canModify?'<button class="ghostBtn small" data-postpone="'+sess.id+'">Posponer</button><button class="ghostBtn small danger" data-delete="'+sess.id+'">Eliminar</button>':'') +
+          '</div>' +
+          '<div style="display:flex;gap:6px;align-items:center">' +
+            (!isRace?(()=>{
+              const pos=runOrder.findIndex(s=>s.id===sess.id);
+              const prevIsRace=pos>0 && runOrder[pos-1].tipo==="CARRERA";
+              const nextIsRace=pos<runOrder.length-1 && runOrder[pos+1].tipo==="CARRERA";
+              const upDisabled=pos<=0||prevIsRace;
+              const downDisabled=pos>=runOrder.length-1||nextIsRace;
+              return '<button class="ghostBtn small reorderBtn" data-swap="'+sess.id+'" data-dir="-1"'+(upDisabled?' disabled':'')+' title="Mover antes">▲</button>' +
+                     '<button class="ghostBtn small reorderBtn" data-swap="'+sess.id+'" data-dir="1"'+(downDisabled?' disabled':'')+' title="Mover después">▼</button>';
+            })():'') +
+            '<button class="logBtn" data-log="'+sess.id+'">'+(log?"Editar marca":"Registrar marca")+'</button>' +
+          '</div>' +
         '</div></div>';
     }
   });
@@ -1757,6 +1855,12 @@ function settingsTabHTML(){
     '<div class="settingsHd">Perfil</div>' +
     '<div class="settingsRow"><span>Edad · altura · peso</span><b>'+pr.age+' años · '+pr.height+' cm · '+pr.weight+' kg</b></div>' +
     '<div class="settingsRow"><span>IMC</span><b>'+bmi+'</b></div>' +
+    '<div class="settingsHd">Datos</div>' +
+    '<div class="note" style="margin-top:0">Descarga una copia de tu plan y tu historial. El archivo JSON sirve como copia de seguridad completa; el CSV es para abrir tus sesiones registradas en Excel o Google Sheets.</div>' +
+    '<div class="modalBtns" style="margin-top:10px">' +
+      '<button class="ghostBtn" style="flex:1" data-export="json">⬇ Exportar todo (JSON)</button>' +
+      '<button class="ghostBtn" style="flex:1" data-export="csv">⬇ Exportar sesiones (CSV)</button>' +
+    '</div>' +
     '<div class="settingsHd">Cuenta</div>' +
     '<div class="settingsRow"><span>Email</span><b>'+esc((auth.user&&auth.user.email)||"")+'</b></div>' +
     '<button class="ghostBtn" style="width:100%;margin-top:10px" data-logout="1">Cerrar sesión</button>' +
@@ -1811,6 +1915,81 @@ function buildHistory(){
    LOGROS / INSIGNIAS
    ============================================================ */
 const PACE_KEY_LABELS={short:"series cortas (≈5K)",vo2:"series (≈10K)",tempo:"umbral/tempo",race:"ritmo competición",mara:"rodaje activo",long:"tirada larga",easy:"rodaje suave"};
+
+/* ============================================================
+   FEED DEL ENTRENADOR: 1-3 mensajes proactivos según el estado actual
+   ============================================================ */
+function computeCoachFeed(history, achievements){
+  const {weeks,curWeek}=history;
+  const msgs=[]; // {icon, text, tone:"good"|"warn"|"info", action?:{label,attr}}
+
+  // --- inactividad: días desde el último registro, si hay alguna sesión pendiente ---
+  let lastLogDate=null;
+  for(const key in state.logs){
+    const log=state.logs[key];
+    if(log && log.date){ const d=new Date(log.date); if(!lastLogDate||d>lastLogDate) lastLogDate=d; }
+  }
+  if(lastLogDate){
+    const daysSince=Math.floor((Date.now()-lastLogDate.getTime())/86400000);
+    const {sess:pending}=findTodaySession(curWeek, weeks[curWeek]||{sessions:[]});
+    if(daysSince>=3 && pending){
+      msgs.push({icon:"👋", tone:"warn",
+        text:"Llevas "+daysSince+" días sin registrar ninguna sesión. Si te ha costado retomar, prueba con algo suave de 20-30 minutos para volver a la rutina sin presión."});
+    }
+  }
+
+  // --- modo recuperación activo: recordatorio ---
+  if(state.weekAdj && state.weekAdj.active){
+    msgs.push({icon:"😴", tone:"info",
+      text:"Sigues en modo recuperación: rodajes y tirada larga reducidos un 15% hasta la semana "+(state.weekAdj.since+1)+". Encadena un par de sesiones con buena sensación para volver al volumen normal."});
+  }
+
+  // --- carga alta (ACWR) sin modo recuperación activo ---
+  if(!(state.weekAdj&&state.weekAdj.active)){
+    const ac=acwr(history);
+    if(ac.ratio!=null && ac.ratio>1.3){
+      msgs.push({icon:"⚠️", tone:"warn",
+        text:"Tu carga de esta semana está bastante por encima de tu media reciente (ratio "+ac.ratio.toFixed(2)+"). Si notas las piernas cargadas, pulsa el botón de abajo para activar el modo recuperación."});
+    }
+  }
+
+  // --- racha positiva ---
+  const st=streak(history);
+  if(st>=3 && !(state.weekAdj&&state.weekAdj.active)){
+    msgs.push({icon:"🔥", tone:"good",
+      text:"Has completado "+st+" sesiones consecutivas. Buen trabajo — mantén la intensidad prevista y sigue así."});
+  }
+
+  // --- tendencia de forma ---
+  const h=state.history;
+  if(h.length>=2){
+    const lookback=Math.min(4,h.length-1);
+    const diff=h[h.length-1-lookback].pace - h[h.length-1].pace; // + = mejorando
+    if(diff>=2){
+      msgs.push({icon:"⚡", tone:"good",
+        text:"Tu ritmo de fitness ha mejorado "+Math.round(diff)+" s/km en las últimas sesiones de calidad. Vas en buena dirección."});
+    } else if(diff<=-2){
+      msgs.push({icon:"📉", tone:"warn",
+        text:"Tu ritmo de fitness ha bajado "+Math.abs(Math.round(diff))+" s/km últimamente. Puede ser fatiga acumulada — no fuerces si las sensaciones no acompañan."});
+    }
+  }
+
+  // --- cerca de un logro (≥80% del objetivo, aún no conseguido) ---
+  const close=achievements.filter(a=>!a.done && (a.progress/a.goal)>=0.8)
+    .sort((a,b)=>(b.progress/b.goal)-(a.progress/a.goal))[0];
+  if(close){
+    const restante = close.unit==="%" ? Math.round(close.goal-close.progress)+"%" :
+                     close.unit==="km" ? (close.goal-close.progress).toFixed(1)+" km" :
+                     (close.goal-close.progress)+" más";
+    msgs.push({icon:close.icon, tone:"info",
+      text:"Estás muy cerca de conseguir \""+close.title+"\": te falta "+restante+"."});
+  }
+
+  // prioridad: avisos primero, luego info, luego positivos; máximo 3
+  const order={warn:0, info:1, good:2};
+  msgs.sort((a,b)=>order[a.tone]-order[b.tone]);
+  return msgs.slice(0,3);
+}
 
 function computeAchievements(history){
   const {weeks,curWeek,P}=history;
@@ -2094,10 +2273,29 @@ function dashboardTabHTML(){
   const {sess:today, week:todayWeek} = findTodaySession(curWeek, wk);
   const raceDateForToday=new Date(state.raceDate+"T00:00:00");
   const daysToRaceToday=Math.max(0,Math.ceil((raceDateForToday.getTime()-Date.now())/86400000));
+  const daysSinceRace=Math.floor((Date.now()-raceDateForToday.getTime())/86400000);
+  const planExpired = daysSinceRace>=2; // un par de días de margen tras la fecha de la prueba
   const todayLabel = todayWeek===curWeek ? "HOY" : "PRÓXIMA SESIÓN (S"+todayWeek+")";
+  const achievementsList=computeAchievements(history);
 
   let html='';
-  if(today){
+  if(!planExpired){
+    const feed=computeCoachFeed(history, achievementsList);
+    if(feed.length){
+      html+='<div class="coachFeed">';
+      feed.forEach(m=>{
+        html+='<div class="feedItem feed-'+m.tone+'"><span class="feedIcon">'+m.icon+'</span><div class="feedText">'+esc(m.text)+'</div></div>';
+      });
+      html+='</div>';
+    }
+  }
+  if(planExpired){
+    html+='<div class="todayCard todayRace"><div class="todayLbl">🏁 ¡YA HA PASADO TU '+EVENTS[state.event].label.toUpperCase()+'!</div>' +
+      '<div class="todayTitle">¿Cómo te fue?</div>' +
+      '<div class="todayDetail">La fecha de tu prueba ('+raceDateForToday.toLocaleDateString("es-ES",{day:"numeric",month:"long",year:"numeric"})+') ya pasó. Espero que fuera una gran carrera. Cuando quieras, puedes crear un nuevo plan con un objetivo distinto, o seguir explorando tu progreso y registros aquí.</div>' +
+      '<div class="modalBtns" style="margin-top:14px"><button class="cta" style="margin-top:0;background:#fff;color:var(--accent)" data-newplan="1">🎯 Crear un nuevo plan</button></div>' +
+    '</div>';
+  } else if(today){
     const isRaceToday=today.tipo==="CARRERA";
     if(today.gym){
       html+='<div class="todayCard"><div class="todayLbl">'+todayLabel+'</div>' +
@@ -2127,16 +2325,18 @@ function dashboardTabHTML(){
     '</div>';
   }
 
-  html+='<div class="coachRow">' +
-    '<span class="coachLbl">¿Cómo te encuentras?</span>' +
-    '<button class="coachBtn" data-coach="heavy">😣 Piernas cargadas</button>' +
-    '<button class="coachBtn" data-coach="missed">📅 No entrené ayer</button>' +
-    '<button class="coachBtn" data-coach="great">🚀 Hoy genial</button>' +
-  '</div>';
+  if(!planExpired){
+    html+='<div class="coachRow">' +
+      '<span class="coachLbl">¿Cómo te encuentras?</span>' +
+      '<button class="coachBtn" data-coach="heavy">😣 Piernas cargadas</button>' +
+      '<button class="coachBtn" data-coach="missed">📅 No entrené ayer</button>' +
+      '<button class="coachBtn" data-coach="great">🚀 Hoy genial</button>' +
+    '</div>';
+  }
 
   // --- Logros / insignias ---
   {
-    const ach=computeAchievements(history);
+    const ach=achievementsList;
     const done=ach.filter(a=>a.done);
     const pending=ach.filter(a=>!a.done);
     // ordena los pendientes por cercanía a completarse
@@ -2165,11 +2365,11 @@ function dashboardTabHTML(){
   }
 
 
-  if(state.weekAdj && state.weekAdj.active){
+  if(!planExpired && state.weekAdj && state.weekAdj.active){
     const upto=state.weekAdj.since+1;
     html+='<div class="banner warn">😴 <b>Modo recuperación activo</b> (hasta S'+upto+'): rodajes y tirada larga reducidos un 15%'+(state.weekAdj.postponedLong?', y la tirada larga de la semana '+state.weekAdj.since+' se movió a la siguiente':'')+'. Volverá a la normalidad cuando encadenes un par de sesiones con buena sensación.</div>';
   }
-  if(overload.length){
+  if(!planExpired && overload.length){
     overload.forEach(o=>{
       const names=o.incoming.map(s=>'"'+s.titulo+'"').join(' y ');
       const when=o.week===curWeek?'esta semana':'la semana próxima (S'+o.week+')';
@@ -2675,7 +2875,7 @@ function wire(){
   const dateEl=document.getElementById("ob-raceDate");
   if(dateEl) dateEl.onchange=()=>{ syncObInputs(); render(); };
   root.onclick=(e)=>{
-    const t=e.target.closest("[data-tab],[data-week],[data-log],[data-gym],[data-postpone],[data-delete],[data-undo-week],[data-reset],[data-rpe],[data-reps],[data-sel],[data-day],[data-setday],[data-calmonth],[data-coach],[data-toggle-achievements],[data-more-toggle],[data-more-close],[data-create],[data-save],[data-close],[data-stop],[data-auth-submit],[data-auth-switch],[data-auth-reset],[data-logout],[data-track-start],[data-track-pause],[data-track-resume],[data-track-stop],[data-track-discard],[data-track-apply]");
+    const t=e.target.closest("[data-tab],[data-week],[data-log],[data-gym],[data-postpone],[data-delete],[data-undo-week],[data-swap],[data-reset],[data-newplan],[data-export],[data-rpe],[data-reps],[data-sel],[data-day],[data-setday],[data-calmonth],[data-coach],[data-toggle-achievements],[data-more-toggle],[data-more-close],[data-calcdist],[data-calc-equiv],[data-calc-hr],[data-create],[data-save],[data-close],[data-stop],[data-auth-submit],[data-auth-switch],[data-auth-reset],[data-logout],[data-track-start],[data-track-pause],[data-track-resume],[data-track-stop],[data-track-discard],[data-track-apply]");
     if(!t) return;
     if(t.hasAttribute("data-stop")) return;
     if(t.dataset.tab){ ui.tab=t.dataset.tab; ui.moreMenuOpen=false; render(); return; }
@@ -2684,6 +2884,11 @@ function wire(){
     if(t.dataset.week){ ui.viewWeek=parseInt(t.dataset.week); render(); return; }
     if(t.dataset.log){ ui.modal={week:ui.viewWeek,sessId:t.dataset.log,pace:null,rpe:null,note:null,repsDone:null}; render(); return; }
     if(t.dataset.gym){ toggleGym(ui.viewWeek,t.dataset.gym); return; }
+    if(t.dataset.swap){
+      if(t.disabled) return;
+      swapSessions(ui.viewWeek, t.dataset.swap, parseInt(t.dataset.dir));
+      return;
+    }
     if(t.dataset.postpone){
       const sess=buildWeek(ui.viewWeek,state.profile.runDays,state.profile.gymDays,state.totalWeeks,state.event,state.goalPace).find(s=>s.id===t.dataset.postpone);
       if(sess) postponeSession(ui.viewWeek,sess);
@@ -2702,6 +2907,8 @@ function wire(){
       return;
     }
     if(t.dataset.reset){ if(confirm("¿Seguro que quieres borrar el plan y empezar de cero?")) resetPlan(); return; }
+    if(t.dataset.export){ exportData(t.dataset.export); return; }
+    if(t.dataset.newplan!==undefined){ if(confirm("Esto archivará tu plan actual y empezarás uno nuevo desde cero. ¿Continuar?")) resetPlan(); return; }
     if(t.dataset.rpe){ syncModalInputs(); ui.modal.rpe=parseInt(t.dataset.rpe); render(); return; }
     if(t.dataset.reps){ syncModalInputs(); ui.modal.repsDone=parseInt(t.dataset.reps); render(); return; }
     if(t.dataset.close){ ui.modal=null; render(); return; }
@@ -2760,6 +2967,9 @@ function wire(){
       ui.showAllAchievements=!ui.showAllAchievements;
       render(); return;
     }
+    if(t.dataset.calcdist!==undefined){ syncCalcInputs(); ui.calc.dist=t.dataset.calcdist; render(); return; }
+    if(t.dataset.calcEquiv!==undefined){ syncCalcInputs(); render(); return; }
+    if(t.dataset.calcHr!==undefined){ syncCalcInputs(); render(); return; }
     if(t.dataset.create){ createPlan(); return; }
     if(t.hasAttribute("data-auth-switch")){ syncAuthInputs(); auth.form.mode=auth.form.mode==="login"?"register":"login"; render(); return; }
     if(t.hasAttribute("data-auth-submit")){ syncAuthInputs(); if(auth.form.mode==="login") doLogin(); else doRegister(); return; }

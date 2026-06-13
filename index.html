@@ -37,6 +37,8 @@
   .accent{color:var(--accent);font-weight:800;}
   .unit{font-size:.5em;color:var(--mut);font-weight:600;}
   .bibBox{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px 18px;text-align:center;box-shadow:var(--sh);}
+  .logoutIcon{border:1px solid var(--line);background:var(--card);color:var(--mut);width:42px;height:42px;border-radius:10px;font-size:18px;flex:none;transition:all .15s;}
+  .logoutIcon:hover{border-color:var(--accent-dk);color:var(--accent-dk);}
   .bibLabel{font-size:var(--fs-xs);letter-spacing:.1em;text-transform:uppercase;color:var(--mut2);font-weight:600;}
   .bibPace{font-family:var(--mono);font-size:var(--fs-xl);font-weight:600;line-height:1.1;letter-spacing:-.02em;}
   .bibSub{font-size:var(--fs-xs);color:var(--mut);}
@@ -166,6 +168,7 @@
 
   /* onboarding */
   .onboard{max-width:540px;margin:4vh auto 0;}
+  .loadingScreen{min-height:80vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;}
   .onboardTitle{font-size:clamp(24px,4vw,32px);font-weight:800;line-height:1.1;letter-spacing:-.02em;margin:2px 0 12px;}
   .onboardSub{font-size:var(--fs-md);line-height:1.6;color:var(--mut);margin-bottom:20px;}
   .formCard{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:24px;box-shadow:var(--sh2);}
@@ -215,6 +218,7 @@
     .eyebrow{font-size:var(--fs-xs);margin-bottom:4px;}
     .headerTop{align-items:flex-start;gap:12px;}
     .bibBox{padding:9px 14px;}
+    .logoutIcon{width:38px;height:38px;font-size:16px;}
     .bibPace{font-size:var(--fs-xl);}
     .bibSub{font-size:var(--fs-xs);}
 
@@ -267,6 +271,38 @@
     .logoHeader{height:38px;}
   }
 </style>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getDatabase, ref, get, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDb6A85NGo1NgR-4plV0L8nSy84bpWcu3g",
+    authDomain: "goat-6086d.firebaseapp.com",
+    databaseURL: "https://goat-6086d-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "goat-6086d",
+    storageBucket: "goat-6086d.firebasestorage.app",
+    messagingSenderId: "422644611845",
+    appId: "1:422644611845:web:6e59fe6915afaa0466156c"
+  };
+  const fbApp = initializeApp(firebaseConfig);
+  const auth = getAuth(fbApp);
+  const db = getDatabase(fbApp);
+
+  // expone una API mínima al script principal (no-módulo)
+  window.firebaseAPI = {
+    register: (email,pass)=>createUserWithEmailAndPassword(auth,email,pass),
+    login: (email,pass)=>signInWithEmailAndPassword(auth,email,pass),
+    logout: ()=>signOut(auth),
+    resetPassword: (email)=>sendPasswordResetEmail(auth,email),
+    saveState: (uid,data)=>set(ref(db,"users/"+uid+"/state"), data),
+    loadState: (uid)=>get(ref(db,"users/"+uid+"/state")).then(s=>s.exists()?s.val():null),
+    onAuthChange: (cb)=>onAuthStateChanged(auth,cb),
+  };
+  // señal de que el SDK está listo (el script principal puede esperar a esto)
+  window.__firebaseReady=true;
+  window.dispatchEvent(new Event("firebase-ready"));
+</script>
 </head>
 <body>
 <div id="root"></div>
@@ -836,6 +872,7 @@ function adaptFitness(fitness, prescribed, actual, rpe, initialPace, goalPace){
    ============================================================ */
 let state=null;
 const ui={ tab:"resumen", viewWeek:1, modal:null, ob:null };
+const auth={ user:null, ready:false, form:{mode:"login", email:"", pass:"", pass2:""} };
 let toastTimer=null;
 
 function defaultOb(){
@@ -843,7 +880,19 @@ function defaultOb(){
   return { event:"hm", raceDate:d.toISOString().slice(0,10), runDays:4, gymDays:2, age:"", height:"", weight:"", c10:"", cHM:"", t10:"", tHM:"" };
 }
 function currentWeekOf(sd,totalWeeks){ const d=Math.floor((Date.now()-new Date(sd).getTime())/86400000); return Math.min(Math.max(Math.floor(d/7)+1,1),totalWeeks); }
-function save(){ storage.set(STORAGE_KEY, JSON.stringify(state)); }
+let cloudSaveTimer=null;
+function save(){
+  storage.set(STORAGE_KEY, JSON.stringify(state));
+  // sincroniza con Firebase con un pequeño debounce, para no escribir en cada tecla
+  if(auth.user && window.firebaseAPI){
+    clearTimeout(cloudSaveTimer);
+    cloudSaveTimer=setTimeout(()=>{
+      window.firebaseAPI.saveState(auth.user.uid, state).catch(()=>{
+        showToast("No se pudo sincronizar con la nube. Tus datos se han guardado en este dispositivo.", true);
+      });
+    }, 800);
+  }
+}
 
 function showToast(msg, err=false){
   let t=document.getElementById("toast");
@@ -861,6 +910,86 @@ function paceToEvent(paceMinPerKm, fromDist, ev){
 }
 
 /* ---------- crear plan desde el onboarding ---------- */
+/* ============================================================
+   AUTENTICACIÓN
+   ============================================================ */
+function validEmail(e){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
+
+async function doRegister(){
+  const f=auth.form;
+  if(!validEmail(f.email)){ showToast("Introduce un email válido.", true); return; }
+  if(!f.pass || f.pass.length<6){ showToast("La contraseña debe tener al menos 6 caracteres.", true); return; }
+  if(f.pass!==f.pass2){ showToast("Las contraseñas no coinciden.", true); return; }
+  try{
+    await window.firebaseAPI.register(f.email, f.pass);
+    showToast("Cuenta creada. ¡Bienvenido!");
+  }catch(e){
+    showToast(authErrorMsg(e), true);
+  }
+}
+async function doLogin(){
+  const f=auth.form;
+  if(!validEmail(f.email)){ showToast("Introduce un email válido.", true); return; }
+  if(!f.pass){ showToast("Introduce tu contraseña.", true); return; }
+  try{
+    await window.firebaseAPI.login(f.email, f.pass);
+  }catch(e){
+    showToast(authErrorMsg(e), true);
+  }
+}
+async function doLogout(){
+  try{ await window.firebaseAPI.logout(); }catch(e){}
+  state=null; ui.tab="resumen"; ui.ob=null;
+  render();
+}
+async function doResetPassword(){
+  const f=auth.form;
+  if(!validEmail(f.email)){ showToast("Escribe tu email arriba y vuelve a pulsar para recibir el enlace de recuperación.", true); return; }
+  try{
+    await window.firebaseAPI.resetPassword(f.email);
+    showToast("Te hemos enviado un email para restablecer tu contraseña.");
+  }catch(e){
+    showToast(authErrorMsg(e), true);
+  }
+}
+function authErrorMsg(e){
+  const c=(e&&e.code)||"";
+  if(c.includes("email-already-in-use")) return "Ese email ya tiene una cuenta. Prueba a iniciar sesión.";
+  if(c.includes("invalid-email")) return "Email no válido.";
+  if(c.includes("weak-password")) return "La contraseña es demasiado débil (mínimo 6 caracteres).";
+  if(c.includes("user-not-found")||c.includes("wrong-password")||c.includes("invalid-credential")) return "Email o contraseña incorrectos.";
+  if(c.includes("too-many-requests")) return "Demasiados intentos. Espera un momento y vuelve a intentarlo.";
+  if(c.includes("network-request-failed")) return "Sin conexión. Comprueba tu internet.";
+  return "Ha ocurrido un error. Inténtalo de nuevo.";
+}
+
+function authHTML(){
+  const f=auth.form;
+  const isLogin=f.mode==="login";
+  return '<div class="shell"><div class="onboard">' +
+    '<div class="logoWrap"><img class="logoOnboard" src="'+LOGO+'" alt="GOAT PACE"></div>' +
+    '<div class="eyebrow">'+(isLogin?"BIENVENIDO DE NUEVO":"CREAR CUENTA")+'</div>' +
+    '<h1 class="onboardTitle">'+(isLogin?'INICIA<br><span class="accent">SESIÓN</span>':'CREA TU<br><span class="accent">CUENTA</span>')+'</h1>' +
+    '<p class="onboardSub">Tu plan y tu progreso se guardan en la nube, así puedes acceder desde cualquier dispositivo.</p>' +
+    '<div class="formCard">' +
+      '<label class="lbl">Email</label>' +
+      '<input class="field" id="auth-email" type="email" inputmode="email" autocomplete="email" placeholder="tucorreo@ejemplo.com" value="'+esc(f.email)+'">' +
+      '<label class="lbl">Contraseña</label>' +
+      '<input class="field" id="auth-pass" type="password" autocomplete="'+(isLogin?"current-password":"new-password")+'" placeholder="••••••••" value="'+esc(f.pass)+'">' +
+      (isLogin?'':'<label class="lbl">Repite la contraseña</label><input class="field" id="auth-pass2" type="password" autocomplete="new-password" placeholder="••••••••" value="'+esc(f.pass2)+'">') +
+      (isLogin?'<button class="ghostBtn small" data-auth-reset="1" style="margin-top:10px">¿Olvidaste tu contraseña?</button>':'') +
+      '<button class="cta" data-auth-submit="1">'+(isLogin?"Iniciar sesión":"REGISTRA UNA NUEVA CABRA")+'</button>' +
+      '<button class="ghostBtn" style="width:100%;margin-top:10px" data-auth-switch="1">'+(isLogin?"¿No tienes cuenta? Regístrate":"¿Ya tienes cuenta? Inicia sesión")+'</button>' +
+    '</div>' +
+  '</div></div>';
+}
+function syncAuthInputs(){
+  const e=document.getElementById("auth-email"), p=document.getElementById("auth-pass"), p2=document.getElementById("auth-pass2");
+  if(e) auth.form.email=e.value;
+  if(p) auth.form.pass=p.value;
+  if(p2) auth.form.pass2=p2.value;
+}
+
 function createPlan(){
   syncObInputs();
   const o=ui.ob;
@@ -1035,6 +1164,8 @@ function resetPlan(){ storage.del(STORAGE_KEY); state=null; ui.tab="resumen"; ui
 /* ---------- render ---------- */
 function render(){
   const root=document.getElementById("root");
+  if(!auth.ready){ root.innerHTML='<div class="shell"><div class="loadingScreen"><img class="logoOnboard" src="'+LOGO+'" alt="GOAT PACE"><div class="note" style="margin-top:14px">Cargando…</div></div></div>'; return; }
+  if(!auth.user){ root.innerHTML=authHTML(); wire(); return; }
   if(state===null){ if(!ui.ob) ui.ob=defaultOb(); root.innerHTML=onboardHTML(); wire(); return; }
 
   const f=state.fitnessPace, P=paces(f,state.gap,state.event);
@@ -1059,6 +1190,7 @@ function render(){
         '<div class="bigTitle">OBJETIVO <span class="accent">'+fmtPace(state.goalPace)+'</span><span class="unit">/km</span></div></div></div>' +
         '<div class="bibBox"><div class="bibLabel">RITMO ACTUAL</div><div class="bibPace">'+fmtPace(f)+'</div>' +
         '<div class="bibSub">≈ '+fmtTime(f*EVENTS[state.event].dist)+' en meta</div></div>' +
+        '<button class="logoutIcon" data-logout="1" title="Cerrar sesión">⏻</button>' +
       '</div>' +
       '<div class="progressRow"><div class="progressTrack"><div class="progressFill" style="width:'+progress+'%"></div><div class="progressGoal"></div></div>' +
       '<div class="progressTxt">'+progress+'% hacia '+fmtPace(state.goalPace)+' · carrera ≈ '+raceDate.toLocaleDateString("es-ES",{day:"numeric",month:"short",year:"numeric"})+'</div></div></header>' +
@@ -1166,6 +1298,9 @@ function settingsTabHTML(){
     '<div class="settingsHd">Perfil</div>' +
     '<div class="settingsRow"><span>Edad · altura · peso</span><b>'+pr.age+' años · '+pr.height+' cm · '+pr.weight+' kg</b></div>' +
     '<div class="settingsRow"><span>IMC</span><b>'+bmi+'</b></div>' +
+    '<div class="settingsHd">Cuenta</div>' +
+    '<div class="settingsRow"><span>Email</span><b>'+esc((auth.user&&auth.user.email)||"")+'</b></div>' +
+    '<button class="ghostBtn" style="width:100%;margin-top:10px" data-logout="1">Cerrar sesión</button>' +
     '<button class="dangerBtn" data-reset="1">Borrar plan y empezar de cero</button>' +
   '</div>';
 }
@@ -1581,7 +1716,7 @@ function wire(){
   const dateEl=document.getElementById("ob-raceDate");
   if(dateEl) dateEl.onchange=()=>{ syncObInputs(); render(); };
   root.onclick=(e)=>{
-    const t=e.target.closest("[data-tab],[data-week],[data-log],[data-gym],[data-postpone],[data-delete],[data-reset],[data-rpe],[data-reps],[data-sel],[data-create],[data-save],[data-close],[data-stop]");
+    const t=e.target.closest("[data-tab],[data-week],[data-log],[data-gym],[data-postpone],[data-delete],[data-reset],[data-rpe],[data-reps],[data-sel],[data-create],[data-save],[data-close],[data-stop],[data-auth-submit],[data-auth-switch],[data-auth-reset],[data-logout]");
     if(!t) return;
     if(t.hasAttribute("data-stop")) return;
     if(t.dataset.tab){ ui.tab=t.dataset.tab; render(); return; }
@@ -1605,16 +1740,78 @@ function wire(){
     if(t.dataset.save){ const sess=buildWeek(ui.modal.week,state.profile.runDays,state.profile.gymDays,state.totalWeeks,state.event,state.goalPace).find(s=>s.id===ui.modal.sessId); logSession(ui.modal.week,sess,document.getElementById("m-pace").value,(ui.modal.rpe!=null?ui.modal.rpe:6),document.getElementById("m-note").value,ui.modal.repsDone); return; }
     if(t.dataset.sel){ syncObInputs(); const v=t.dataset.val; ui.ob[t.dataset.sel]=isNaN(v)?v:parseFloat(v); render(); return; }
     if(t.dataset.create){ createPlan(); return; }
+    if(t.hasAttribute("data-auth-switch")){ syncAuthInputs(); auth.form.mode=auth.form.mode==="login"?"register":"login"; render(); return; }
+    if(t.hasAttribute("data-auth-submit")){ syncAuthInputs(); if(auth.form.mode==="login") doLogin(); else doRegister(); return; }
+    if(t.hasAttribute("data-auth-reset")){ syncAuthInputs(); doResetPassword(); return; }
+    if(t.hasAttribute("data-logout")){ if(confirm("¿Cerrar sesión?")) doLogout(); return; }
   };
 }
 
 /* ---------- arranque ---------- */
-(function init(){
+function loadLocalState(){
   const r=storage.get(STORAGE_KEY);
-  if(r&&r.value){ try{ state=JSON.parse(r.value); ui.viewWeek=currentWeekOf(state.startDate,state.totalWeeks); }catch(e){ state=null; } }
-  if(state===null) ui.ob=defaultOb();
+  if(r&&r.value){ try{ const s=JSON.parse(r.value); return s; }catch(e){ return null; } }
+  return null;
+}
+
+// Realtime Database omite/convierte a null las propiedades vacías ({} o []),
+// así que al recuperar el state hay que reponer los valores por defecto.
+function normalizeState(s){
+  if(!s) return s;
+  if(!s.logs || typeof s.logs!=="object") s.logs={};
+  if(!s.overrides || typeof s.overrides!=="object") s.overrides={};
+  if(!Array.isArray(s.history)) s.history=[];
+  if(!s.volumeAdj) s.volumeAdj={repsDelta:0,recoveryMult:1,reason:"hold"};
+  if(typeof s.hardStreak!=="number") s.hardStreak=0;
+  // los arrays dentro de "incoming-N" en overrides también pueden venir como objeto si RTDB los reindexó
+  for(const k in s.overrides){
+    if(k.startsWith("incoming-") && s.overrides[k] && !Array.isArray(s.overrides[k])){
+      s.overrides[k]=Object.values(s.overrides[k]);
+    }
+  }
+  return s;
+}
+
+async function onUserSignedIn(user){
+  auth.user=user;
+  let s=null;
+  try{
+    s=await window.firebaseAPI.loadState(user.uid);
+  }catch(e){
+    showToast("No se pudo conectar con la nube. Usando los datos guardados en este dispositivo.", true);
+  }
+  if(!s) s=loadLocalState(); // primera vez en este dispositivo, o sin conexión: usa la copia local si existe
+  s=normalizeState(s);
+  if(s){
+    state=s;
+    ui.viewWeek=currentWeekOf(state.startDate,state.totalWeeks);
+    storage.set(STORAGE_KEY, JSON.stringify(state)); // refresca la caché local
+    // si el plan venía solo de localStorage (no existía aún en la nube), lo sube
+    if(window.firebaseAPI) window.firebaseAPI.saveState(user.uid, state).catch(()=>{});
+  } else {
+    state=null; ui.ob=defaultOb();
+  }
+  ui.tab="resumen";
   render();
+}
+function onUserSignedOut(){
+  auth.user=null; state=null; ui.ob=null;
+  render();
+}
+
+function startAuthListener(){
+  window.firebaseAPI.onAuthChange((user)=>{
+    auth.ready=true;
+    if(user) onUserSignedIn(user); else onUserSignedOut();
+  });
+}
+
+(function init(){
+  render(); // pantalla de carga mientras Firebase arranca
+  if(window.__firebaseReady && window.firebaseAPI) startAuthListener();
+  else window.addEventListener("firebase-ready", startAuthListener, {once:true});
 })();
 </script>
+
 </body>
 </html>
